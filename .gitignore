@@ -1,0 +1,23 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.wasm
+*.bin
+
+# Test binaries
+*_test
+
+# IDE and editor specific files
+.idea/
+.vscode/
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.bak
+
+# Logs and temporary files
+*.log
+tmp/
