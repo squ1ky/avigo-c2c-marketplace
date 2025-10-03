@@ -20,6 +20,11 @@ func main() {
 	}
 	defer pool.Close()
 
+	if err := db.RunMigrations(cfg.DatabaseURL, cfg.MigrationsPath); err != nil {
+		log.Fatalf("Migration error: %v", err)
+	}
+	log.Println("Migrations applied successfully")
+
 	router := gin.Default()
 
 	router.GET("/health", func(c *gin.Context) {
