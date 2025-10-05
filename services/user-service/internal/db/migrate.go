@@ -35,6 +35,7 @@ func RunMigrations(databaseURL, migrationsPath string) error {
 	if err != nil {
 		return fmt.Errorf("could not create migration instance: %w", err)
 	}
+	defer m.Close()
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("could not run migrations: %w", err)
