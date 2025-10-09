@@ -2,42 +2,122 @@ package config
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	ServerAddress  string
-	DatabaseURL    string
+	Server   ServerConfig
+	Database DatabaseConfig
+	JWT      JWTConfig
+	Kafka    KafkaConfig
+	Cookie   CookieConfig
+	LogLevel string
+}
+
+type ServerConfig struct {
+	Address string
+}
+
+type DatabaseConfig struct {
+	URL            string
 	MigrationsPath string
-	JWTSecret      string
-	LogLevel       string
+}
+
+type JWTConfig struct {
+	Secret               string
+	AccessTokenDuration  time.Duration
+	RefreshTokenDuration time.Duration
+}
+
+type KafkaConfig struct {
+	Brokers         []string
+	TopicUserEvents string
+}
+
+type CookieConfig struct {
+	Domain   string
+	Secure   bool
+	HTTPOnly bool
+	SameSite string
 }
 
 func LoadConfig() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
-	cfg := &Config{
-		ServerAddress:  viper.GetString("SERVER_ADDRESS"),
-		DatabaseURL:    viper.GetString("DATABASE_URL"),
-		MigrationsPath: viper.GetString("MIGRATIONS_PATH"),
-		JWTSecret:      viper.GetString("JWT_SECRET"),
-		LogLevel:       viper.GetString("LOG_LEVEL"),
+	accessTokenDuration, err := parseDuration("ACCESS_TOKEN_DURATION")
+	if err != nil {
+		return nil, err
 	}
 
-	if cfg.DatabaseURL == "" {
-		return nil, errors.New("DATABASE_URL is not set")
+	refreshTokenDuration, err := parseDuration("REFRESH_TOKEN_DURATION")
+	if err != nil {
+		return nil, err
 	}
-	if cfg.MigrationsPath == "" {
-		return nil, errors.New("MIGRATIONS_PATH is not set")
+
+	cfg := &Config{
+		Server: ServerConfig{
+			Address: viper.GetString("SERVER_ADDRESS"),
+		},
+		Database: DatabaseConfig{
+			URL:            viper.GetString("DATABASE_URL"),
+			MigrationsPath: viper.GetString("MIGRATIONS_PATH"),
+		},
+		JWT: JWTConfig{
+			Secret:               viper.GetString("JWT_SECRET"),
+			AccessTokenDuration:  accessTokenDuration,
+			RefreshTokenDuration: refreshTokenDuration,
+		},
+		Kafka: KafkaConfig{
+			Brokers:         []string{viper.GetString("KAFKA_BROKERS")},
+			TopicUserEvents: viper.GetString("KAFKA_TOPIC_USER_EVENTS"),
+		},
+		Cookie: CookieConfig{
+			Domain:   viper.GetString("COOKIE_DOMAIN"),
+			Secure:   viper.GetBool("COOKIE_SECURE"),
+			HTTPOnly: viper.GetBool("COOKIE_HTTP_ONLY"),
+			SameSite: viper.GetString("COOKIE_SAME_SITE"),
+		},
+		LogLevel: viper.GetString("LOG_LEVEL"),
 	}
-	if cfg.JWTSecret == "" {
-		return nil, errors.New("JWT_SECRET is not set")
-	}
-	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = ":8081"
+
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
+}
+
+func parseDuration(key string) (time.Duration, error) {
+	durationStr := viper.GetString(key)
+	if durationStr == "" {
+		return 0, fmt.Errorf("%s is not set", key)
+	}
+
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s format: %w", key, err)
+	}
+
+	return duration, nil
+}
+
+func validateConfig(cfg *Config) error {
+	if cfg.Database.URL == "" {
+		return errors.New("DATABASE_URL is not set")
+	}
+	if cfg.Database.MigrationsPath == "" {
+		return errors.New("MIGRATIONS_PATH is not set")
+	}
+	if cfg.JWT.Secret == "" {
+		return errors.New("JWT_SECRET is not set")
+	}
+	if len(cfg.Kafka.Brokers) == 0 || cfg.Kafka.Brokers[0] == "" {
+		return errors.New("KAFKA_BROKERS is not set")
+	}
+
+	return nil
 }
