@@ -32,6 +32,8 @@ type UserRepository interface {
 	ClearConfirmationCode(ctx context.Context, userID uuid.UUID) error
 
 	UpdateLastLogin(ctx context.Context, userID uuid.UUID) error
+
+	WithTx(tx *gorm.DB) UserRepository
 }
 
 type userRepository struct {
@@ -202,4 +204,8 @@ func (r *userRepository) handleConstraintViolation(err error) error {
 	}
 
 	return err
+}
+
+func (r *userRepository) WithTx(tx *gorm.DB) UserRepository {
+	return &userRepository{db: tx}
 }

@@ -26,6 +26,7 @@ var (
 
 type AuthService struct {
 	userRepo             repository.UserRepository
+	txManager            repository.TransactionManager
 	jwtManager           *auth.JWTManager
 	kafkaProducer        *kafka.Producer
 	accessTokenDuration  time.Duration
@@ -34,6 +35,7 @@ type AuthService struct {
 
 func NewAuthService(
 	userRepo repository.UserRepository,
+	txManager repository.TransactionManager,
 	jwtManager *auth.JWTManager,
 	kafkaProducer *kafka.Producer,
 	accessTokenDuration time.Duration,
@@ -41,6 +43,7 @@ func NewAuthService(
 ) *AuthService {
 	return &AuthService{
 		userRepo:             userRepo,
+		txManager:            txManager,
 		jwtManager:           jwtManager,
 		kafkaProducer:        kafkaProducer,
 		accessTokenDuration:  accessTokenDuration,
@@ -219,17 +222,25 @@ func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code s
 		return ErrInvalidConfirmation
 	}
 
-	if err := s.userRepo.UpdateEmailVerified(ctx, userID); err != nil {
-		return err
-	}
+	return s.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		tx := repository.GetTxFromContext(txCtx)
 
-	if err := s.userRepo.UpdateStatus(ctx, userID, model.StatusActive); err != nil {
-		return err
-	}
+		txRepo := s.userRepo.WithTx(tx)
 
-	s.userRepo.ClearConfirmationCode(ctx, userID)
+		if err := txRepo.UpdateEmailVerified(ctx, userID); err != nil {
+			return err
+		}
 
-	return nil
+		if err := txRepo.UpdateStatus(ctx, userID, model.StatusActive); err != nil {
+			return err
+		}
+
+		if err := txRepo.ClearConfirmationCode(txCtx, userID); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*LoginResponse, error) {
