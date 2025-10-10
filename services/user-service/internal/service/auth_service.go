@@ -10,6 +10,7 @@ import (
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/kafka"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/model"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/repository"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/validation"
 	"golang.org/x/crypto/bcrypt"
 	"math/big"
 	"time"
@@ -27,6 +28,7 @@ var (
 type AuthService struct {
 	userRepo             repository.UserRepository
 	txManager            repository.TransactionManager
+	validator            *validation.Validator
 	jwtManager           *auth.JWTManager
 	kafkaProducer        *kafka.Producer
 	accessTokenDuration  time.Duration
@@ -36,6 +38,7 @@ type AuthService struct {
 func NewAuthService(
 	userRepo repository.UserRepository,
 	txManager repository.TransactionManager,
+	validator *validation.Validator,
 	jwtManager *auth.JWTManager,
 	kafkaProducer *kafka.Producer,
 	accessTokenDuration time.Duration,
@@ -44,6 +47,7 @@ func NewAuthService(
 	return &AuthService{
 		userRepo:             userRepo,
 		txManager:            txManager,
+		validator:            validator,
 		jwtManager:           jwtManager,
 		kafkaProducer:        kafkaProducer,
 		accessTokenDuration:  accessTokenDuration,
@@ -52,19 +56,23 @@ func NewAuthService(
 }
 
 type RegisterRequest struct {
-	Username    string
-	Email       string
-	Password    string
-	DisplayName string
-	Phone       string
+	Username    string `json:"username" validate:"required,username"`
+	Email       string `json:"email" validate:"required,email,max=255"`
+	Password    string `json:"password" validate:"required,password"`
+	DisplayName string `json:"display_name" validate:"required,displayname"`
+	Phone       string `json:"phone,omitempty" validate:"omitempty,max=32"`
 }
 
 type RegisterResponse struct {
-	UserID string
-	Email  string
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
 }
 
 func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error) {
+	if err := s.validator.Validate(req); err != nil {
+		return nil, err
+	}
+
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
@@ -95,6 +103,7 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*Regis
 		},
 	}
 
+	// We will receive err here if user already exists
 	if err := s.userRepo.Create(ctx, &user); err != nil {
 		return nil, err
 	}
@@ -107,6 +116,7 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*Regis
 		expiresAt,
 	)
 
+	// TODO: handle err when notification-service can't
 	s.kafkaProducer.SendEmailVerification(event)
 
 	return &RegisterResponse{
@@ -131,27 +141,31 @@ func generateConfirmationCode() (string, error) {
 }
 
 type LoginRequest struct {
-	Login    string // Username/Email
-	Password string
+	Identifier string `json:"identifier" validate:"required,min=3"`
+	Password   string `json:"password" validate:"required,min=8"`
 }
 
 type LoginResponse struct {
-	AccessToken  string
-	RefreshToken string
-	User         *UserInfo
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	User         *UserInfo `json:"user"`
 }
 
 type UserInfo struct {
-	ID          string
-	Username    string
-	Email       string
-	DisplayName string
-	Role        string
-	Status      string
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	DisplayName string `json:"display_name"`
+	Role        string `json:"role"`
+	Status      string `json:"status"`
 }
 
 func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
-	user, err := s.userRepo.GetByEmailOrUsername(ctx, req.Login)
+	if err := s.validator.Validate(req); err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetByEmailOrUsername(ctx, req.Identifier)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			return nil, ErrInvalidCredentials
@@ -192,7 +206,7 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginRespon
 		return nil, err
 	}
 
-	s.userRepo.UpdateLastLogin(ctx, user.ID)
+	_ = s.userRepo.UpdateLastLogin(ctx, user.ID)
 
 	return &LoginResponse{
 		AccessToken:  accessToken,
@@ -209,6 +223,15 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginRespon
 }
 
 func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code string) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user.Security.EmailVerified {
+		return ErrUserAlreadyVerified
+	}
+
 	savedCode, expiresAt, err := s.userRepo.GetConfirmationCode(ctx, userID)
 	if err != nil {
 		return err
