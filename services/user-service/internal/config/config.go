@@ -75,7 +75,7 @@ func LoadConfig() (*Config, error) {
 			RefreshTokenDuration: refreshTokenDuration,
 		},
 		Kafka: KafkaConfig{
-			Brokers:         []string{viper.GetString("KAFKA_BROKERS")},
+			Brokers:         []string{viper.GetString("KAFKA_BROKERS")}, // need parseBrokers() when we have > 1 broker
 			TopicUserEvents: viper.GetString("KAFKA_TOPIC_USER_EVENTS"),
 		},
 		Cookie: CookieConfig{
