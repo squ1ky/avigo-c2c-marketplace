@@ -14,7 +14,6 @@ type Config struct {
 	JWT      JWTConfig
 	Kafka    KafkaConfig
 	Cookie   CookieConfig
-	LogLevel string
 }
 
 type ServerConfig struct {
@@ -47,6 +46,10 @@ type CookieConfig struct {
 func LoadConfig() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("error reading config file: %w", err)
+	}
 
 	accessTokenDuration, err := parseDuration("ACCESS_TOKEN_DURATION")
 	if err != nil {
@@ -81,7 +84,6 @@ func LoadConfig() (*Config, error) {
 			HTTPOnly: viper.GetBool("COOKIE_HTTP_ONLY"),
 			SameSite: viper.GetString("COOKIE_SAME_SITE"),
 		},
-		LogLevel: viper.GetString("LOG_LEVEL"),
 	}
 
 	if err := validateConfig(cfg); err != nil {
