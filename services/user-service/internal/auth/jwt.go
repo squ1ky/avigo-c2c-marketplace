@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/model"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/config"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/domain"
 	"time"
 )
 
@@ -22,49 +23,43 @@ type TokenClaims struct {
 }
 
 type JWTManager struct {
-	secretKey            string
-	accessTokenDuration  time.Duration
-	refreshTokenDuration time.Duration
+	config.JWTConfig
 }
 
-func NewJWTManager(secretKey string, accessTokenDuration, refreshTokenDuration time.Duration) *JWTManager {
+func NewJWTManager(cfg *config.JWTConfig) *JWTManager {
 	return &JWTManager{
-		secretKey:            secretKey,
-		accessTokenDuration:  accessTokenDuration,
-		refreshTokenDuration: refreshTokenDuration,
+		JWTConfig: *cfg,
 	}
 }
 
 func (m *JWTManager) GenerateAccessToken(userID, email, role string) (string, error) {
-	if err := model.ValidateRoleString(role); err != nil {
-		return "", err
-	}
-	return m.generateToken(userID, email, role, m.accessTokenDuration)
+	return m.generateToken(userID, email, role, m.AccessTokenDuration)
 }
 
 func (m *JWTManager) GenerateRefreshToken(userID, email, role string) (string, error) {
-	if err := model.ValidateRoleString(role); err != nil {
-		return "", err
-	}
-	return m.generateToken(userID, email, role, m.refreshTokenDuration)
+	return m.generateToken(userID, email, role, m.RefreshTokenDuration)
 }
 
 func (m *JWTManager) generateToken(userID, email, role string, duration time.Duration) (string, error) {
+	if err := domain.ValidateRoleString(role); err != nil {
+		return "", err
+	}
+
 	claims := TokenClaims{
 		UserID: userID,
 		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+			NotBefore: jwt.NewNumericDate(time.Now().UTC()),
 			ID:        uuid.New().String(),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	signedToken, err := token.SignedString([]byte(m.secretKey))
+	signedToken, err := token.SignedString([]byte(m.Secret))
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
@@ -80,7 +75,7 @@ func (m *JWTManager) ValidateToken(tokenString string) (*TokenClaims, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(m.secretKey), nil
+			return []byte(m.Secret), nil
 		},
 	)
 
@@ -96,18 +91,9 @@ func (m *JWTManager) ValidateToken(tokenString string) (*TokenClaims, error) {
 		return nil, ErrInvalidToken
 	}
 
-	if err := model.ValidateRoleString(claims.Role); err != nil {
+	if err := domain.ValidateRoleString(claims.Role); err != nil {
 		return nil, err
 	}
 
 	return claims, nil
-}
-
-func (m *JWTManager) RefreshAccessToken(refreshToken string) (string, error) {
-	claims, err := m.ValidateToken(refreshToken)
-	if err != nil {
-		return "", err
-	}
-
-	return m.GenerateAccessToken(claims.UserID, claims.Email, claims.Role)
 }

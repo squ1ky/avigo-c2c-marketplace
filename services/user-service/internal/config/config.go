@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/IBM/sarama"
 	"time"
 
 	"github.com/spf13/viper"
@@ -12,6 +13,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
+	Auth     AuthConfig
 	Kafka    KafkaConfig
 	Cookie   CookieConfig
 }
@@ -31,9 +33,20 @@ type JWTConfig struct {
 	RefreshTokenDuration time.Duration
 }
 
+type AuthConfig struct {
+	ConfirmationCodeExpiry time.Duration
+}
+
 type KafkaConfig struct {
 	Brokers         []string
 	TopicUserEvents string
+	RequiredAcks    sarama.RequiredAcks
+	CompressionType sarama.CompressionCodec
+	DialTimeout     time.Duration
+	WriteTimeout    time.Duration
+	ReadTimeout     time.Duration
+	RetryMax        int
+	RetryBackoff    time.Duration
 }
 
 type CookieConfig struct {
@@ -47,9 +60,7 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("error reading config file: %w", err)
-	}
+	setDefaults()
 
 	accessTokenDuration, err := parseDuration("ACCESS_TOKEN_DURATION")
 	if err != nil {
@@ -57,6 +68,11 @@ func LoadConfig() (*Config, error) {
 	}
 
 	refreshTokenDuration, err := parseDuration("REFRESH_TOKEN_DURATION")
+	if err != nil {
+		return nil, err
+	}
+
+	confirmationCodeExpiry, err := parseDuration("CONFIRMATION_CODE_EXPIRY")
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +90,19 @@ func LoadConfig() (*Config, error) {
 			AccessTokenDuration:  accessTokenDuration,
 			RefreshTokenDuration: refreshTokenDuration,
 		},
+		Auth: AuthConfig{
+			ConfirmationCodeExpiry: confirmationCodeExpiry,
+		},
 		Kafka: KafkaConfig{
 			Brokers:         []string{viper.GetString("KAFKA_BROKERS")}, // need parseBrokers() when we have > 1 broker
 			TopicUserEvents: viper.GetString("KAFKA_TOPIC_USER_EVENTS"),
+			RequiredAcks:    sarama.RequiredAcks(viper.GetInt("KAFKA_REQUIRED_ACKS")),
+			CompressionType: sarama.CompressionCodec(viper.GetInt("KAFKA_COMPRESSION")),
+			DialTimeout:     viper.GetDuration("KAFKA_DIAL_TIMEOUT"),
+			WriteTimeout:    viper.GetDuration("KAFKA_WRITE_TIMEOUT"),
+			ReadTimeout:     viper.GetDuration("KAFKA_READ_TIMEOUT"),
+			RetryMax:        viper.GetInt("KAFKA_RETRY_MAX"),
+			RetryBackoff:    viper.GetDuration("KAFKA_RETRY_BACKOFF"),
 		},
 		Cookie: CookieConfig{
 			Domain:   viper.GetString("COOKIE_DOMAIN"),
@@ -91,6 +117,28 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func setDefaults() {
+	viper.SetDefault("SERVER_ADDRESS", ":8081")
+
+	viper.SetDefault("ACCESS_TOKEN_DURATION", "15m")
+	viper.SetDefault("REFRESH_TOKEN_DURATION", "168h")
+	viper.SetDefault("CONFIRMATION_CODE_EXPIRY", "15m")
+
+	viper.SetDefault("COOKIE_HTTP_ONLY", true)
+	viper.SetDefault("COOKIE_SECURE", false)
+	viper.SetDefault("COOKIE_SAME_SITE", "lax")
+
+	viper.SetDefault("KAFKA_REQUIRED_ACKS", int(sarama.WaitForAll))
+	viper.SetDefault("KAFKA_COMPRESSION", int(sarama.CompressionSnappy))
+	viper.SetDefault("KAFKA_DIAL_TIMEOUT", 10*time.Second)
+	viper.SetDefault("KAFKA_WRITE_TIMEOUT", 10*time.Second)
+	viper.SetDefault("KAFKA_READ_TIMEOUT", 10*time.Second)
+	viper.SetDefault("KAFKA_RETRY_MAX", 3)
+	viper.SetDefault("KAFKA_RETRY_BACKOFF", 100*time.Millisecond)
+
+	viper.SetDefault("MIGRATIONS_PATH", "internal/db/migrations")
 }
 
 func parseDuration(key string) (time.Duration, error) {

@@ -25,7 +25,7 @@ func NewEmailVerificationEvent(userID, email, displayName, confirmationCode stri
 		UserEvent: UserEvent{
 			EventType: EventTypeEmailVerification,
 			UserID:    userID,
-			Timestamp: time.Now(),
+			Timestamp: time.Now().UTC(),
 		},
 		Email:            email,
 		DisplayName:      displayName,

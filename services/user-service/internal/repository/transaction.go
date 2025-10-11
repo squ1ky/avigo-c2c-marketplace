@@ -5,6 +5,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type contextKey string
+
+const txKey contextKey = "db_tx"
+
 type TransactionManager interface {
 	WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
@@ -19,13 +23,13 @@ func NewTransactionManager(db *gorm.DB) TransactionManager {
 
 func (tm *transactionManager) WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
 	return tm.db.Transaction(func(tx *gorm.DB) error {
-		txCtx := context.WithValue(ctx, "db_tx", tx)
+		txCtx := context.WithValue(ctx, txKey, tx)
 		return fn(txCtx)
 	})
 }
 
 func GetTxFromContext(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value("db_tx").(*gorm.DB); ok {
+	if tx, ok := ctx.Value(txKey).(*gorm.DB); ok {
 		return tx
 	}
 	return nil

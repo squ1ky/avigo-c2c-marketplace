@@ -114,7 +114,7 @@ func formatFieldError(fieldErr validator.FieldError) string {
 	case "email":
 		return fmt.Sprintf("%s must be a valid email address", field)
 	case "username":
-		return fmt.Sprintf("%s must be 3-32 characters, alphanumeric underscore/hyphen allowed", field)
+		return fmt.Sprintf("%s must be 3-64 characters, alphanumeric underscore/hyphen allowed", field)
 	case "displayname":
 		return fmt.Sprintf("%s must be 1-64 characters", field)
 	case "password":
@@ -123,6 +123,10 @@ func formatFieldError(fieldErr validator.FieldError) string {
 		return fmt.Sprintf("%s must be at least %s characters", field, fieldErr.Param())
 	case "max":
 		return fmt.Sprintf("%s must be at most %s characters", field, fieldErr.Param())
+	case "uuid":
+		return fmt.Sprintf("%s must be a valid UUID", field)
+	case "len":
+		return fmt.Sprintf("%s must be exactly %d characters", field, fieldErr.Param())
 	default:
 		return fmt.Sprintf("%s failed validation on '%s'", field, fieldErr.Tag())
 	}

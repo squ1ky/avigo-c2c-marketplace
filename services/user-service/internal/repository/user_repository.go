@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/model"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/domain"
 	"gorm.io/gorm"
 	"strings"
 	"time"
@@ -18,22 +18,37 @@ var (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *model.User) error
-	GetByID(ctx context.Context, id uuid.UUID) (*model.User, error)
-	GetByEmail(ctx context.Context, email string) (*model.User, error)
-	GetByUsername(ctx context.Context, username string) (*model.User, error)
-	GetByEmailOrUsername(ctx context.Context, identifier string) (*model.User, error)
-	UpdateStatus(ctx context.Context, id uuid.UUID, status model.Status) error
+	UserReader
+	UserWriter
+	UserSecurityManager
+	WithTx(tx *gorm.DB) UserRepository
+}
+
+type UserReader interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByUsername(ctx context.Context, username string) (*domain.User, error)
+	GetByEmailOrUsername(ctx context.Context, identifier string) (*domain.User, error)
+}
+
+type UserWriter interface {
+	Create(ctx context.Context, user *domain.User) error
+	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.Status) error
+}
+
+type UserSecurityManager interface {
 	UpdateEmailVerified(ctx context.Context, userID uuid.UUID) error
 	UpdateRefreshToken(ctx context.Context, userID uuid.UUID, refreshToken string) error
-
-	SaveConfirmationCode(ctx context.Context, userID uuid.UUID, code string, expiresAt time.Time) error
-	GetConfirmationCode(ctx context.Context, userID uuid.UUID) (code string, expiresAt time.Time, err error)
-	ClearConfirmationCode(ctx context.Context, userID uuid.UUID) error
-
 	UpdateLastLogin(ctx context.Context, userID uuid.UUID) error
 
-	WithTx(tx *gorm.DB) UserRepository
+	SaveConfirmationCode(ctx context.Context, userID uuid.UUID, code string, expiresAt time.Time) error
+	GetConfirmationCode(ctx context.Context, userID uuid.UUID) (*ConfirmationCode, error)
+	ClearConfirmationCode(ctx context.Context, userID uuid.UUID) error
+}
+
+type ConfirmationCode struct {
+	Code      string
+	ExpiresAt time.Time
 }
 
 type userRepository struct {
@@ -44,25 +59,25 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *model.User) error {
+func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
 	err := r.db.WithContext(ctx).Create(user).Error
 	return r.handleConstraintViolation(err)
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	return r.findUser(ctx, "users.id = ?", id)
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	return r.findUser(ctx, "Security.email = ?", email)
 }
 
-func (r *userRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
 	return r.findUser(ctx, "users.username = ?", username)
 }
 
-func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier string) (*model.User, error) {
-	var user model.User
+func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier string) (*domain.User, error) {
+	var user domain.User
 
 	err := r.withRelations(r.db.WithContext(ctx)).
 		Where("users.username = ? OR Security.email = ?", identifier, identifier).
@@ -78,9 +93,9 @@ func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier st
 	return &user, nil
 }
 
-func (r *userRepository) UpdateStatus(ctx context.Context, userID uuid.UUID, status model.Status) error {
+func (r *userRepository) UpdateStatus(ctx context.Context, userID uuid.UUID, status domain.Status) error {
 	result := r.db.WithContext(ctx).
-		Model(&model.User{}).
+		Model(&domain.User{}).
 		Where("id = ?", userID).
 		Update("status", status)
 
@@ -113,8 +128,8 @@ func (r *userRepository) SaveConfirmationCode(ctx context.Context, userID uuid.U
 	})
 }
 
-func (r *userRepository) GetConfirmationCode(ctx context.Context, userID uuid.UUID) (string, time.Time, error) {
-	var security model.UserSecurity
+func (r *userRepository) GetConfirmationCode(ctx context.Context, userID uuid.UUID) (*ConfirmationCode, error) {
+	var security domain.UserSecurity
 
 	err := r.db.WithContext(ctx).
 		Select("confirmation_code", "confirmation_expires_at").
@@ -123,9 +138,9 @@ func (r *userRepository) GetConfirmationCode(ctx context.Context, userID uuid.UU
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", time.Time{}, ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
-		return "", time.Time{}, err
+		return nil, err
 	}
 
 	expiresAt := time.Time{}
@@ -133,7 +148,10 @@ func (r *userRepository) GetConfirmationCode(ctx context.Context, userID uuid.UU
 		expiresAt = *security.ConfirmationExpiresAt
 	}
 
-	return security.ConfirmationCode, expiresAt, nil
+	return &ConfirmationCode{
+		Code:      security.ConfirmationCode,
+		ExpiresAt: expiresAt,
+	}, nil
 }
 
 func (r *userRepository) ClearConfirmationCode(ctx context.Context, userID uuid.UUID) error {
@@ -155,8 +173,8 @@ func (r *userRepository) withRelations(db *gorm.DB) *gorm.DB {
 	return db.Joins("Profile").Joins("Security")
 }
 
-func (r *userRepository) findUser(ctx context.Context, condition string, args ...interface{}) (*model.User, error) {
-	var user model.User
+func (r *userRepository) findUser(ctx context.Context, condition string, args ...interface{}) (*domain.User, error) {
+	var user domain.User
 
 	err := r.withRelations(r.db.WithContext(ctx)).
 		Where(condition, args...).
@@ -174,7 +192,7 @@ func (r *userRepository) findUser(ctx context.Context, condition string, args ..
 
 func (r *userRepository) updateSecurity(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error {
 	result := r.db.WithContext(ctx).
-		Model(&model.UserSecurity{}).
+		Model(&domain.UserSecurity{}).
 		Where("user_id = ?", userID).
 		Updates(updates)
 

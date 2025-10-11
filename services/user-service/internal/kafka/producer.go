@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/IBM/sarama"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/config"
 	"log/slog"
-	"time"
 )
 
 type Producer struct {
@@ -14,17 +14,17 @@ type Producer struct {
 	logger       *slog.Logger
 }
 
-func NewProducer(brokers []string, topic string, logger *slog.Logger) (*Producer, error) {
+func NewProducer(brokers []string, topic string, cfg config.KafkaConfig, logger *slog.Logger) (*Producer, error) {
 	config := sarama.NewConfig()
 
-	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.RequiredAcks = cfg.RequiredAcks
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
-	config.Producer.Compression = sarama.CompressionSnappy
+	config.Producer.Compression = cfg.CompressionType
 
-	config.Net.DialTimeout = 10 * time.Second
-	config.Net.WriteTimeout = 10 * time.Second
-	config.Net.ReadTimeout = 10 * time.Second
+	config.Net.DialTimeout = cfg.DialTimeout
+	config.Net.WriteTimeout = cfg.WriteTimeout
+	config.Net.ReadTimeout = cfg.ReadTimeout
 
 	config.Version = sarama.V3_5_0_0
 

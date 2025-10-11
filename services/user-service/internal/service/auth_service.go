@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/auth"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/domain"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/dto"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/kafka"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/model"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/repository"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/validation"
 	"golang.org/x/crypto/bcrypt"
@@ -26,13 +27,12 @@ var (
 )
 
 type AuthService struct {
-	userRepo             repository.UserRepository
-	txManager            repository.TransactionManager
-	validator            *validation.Validator
-	jwtManager           *auth.JWTManager
-	kafkaProducer        *kafka.Producer
-	accessTokenDuration  time.Duration
-	refreshTokenDuration time.Duration
+	userRepo               repository.UserRepository
+	txManager              repository.TransactionManager
+	validator              *validation.Validator
+	jwtManager             *auth.JWTManager
+	kafkaProducer          *kafka.Producer
+	confirmationCodeExpiry time.Duration
 }
 
 func NewAuthService(
@@ -41,34 +41,19 @@ func NewAuthService(
 	validator *validation.Validator,
 	jwtManager *auth.JWTManager,
 	kafkaProducer *kafka.Producer,
-	accessTokenDuration time.Duration,
-	refreshTokenDuration time.Duration,
+	confirmationCodeExpiry time.Duration,
 ) *AuthService {
 	return &AuthService{
-		userRepo:             userRepo,
-		txManager:            txManager,
-		validator:            validator,
-		jwtManager:           jwtManager,
-		kafkaProducer:        kafkaProducer,
-		accessTokenDuration:  accessTokenDuration,
-		refreshTokenDuration: refreshTokenDuration,
+		userRepo:               userRepo,
+		txManager:              txManager,
+		validator:              validator,
+		jwtManager:             jwtManager,
+		kafkaProducer:          kafkaProducer,
+		confirmationCodeExpiry: confirmationCodeExpiry,
 	}
 }
 
-type RegisterRequest struct {
-	Username    string `json:"username" validate:"required,username"`
-	Email       string `json:"email" validate:"required,email,max=255"`
-	Password    string `json:"password" validate:"required,password"`
-	DisplayName string `json:"display_name" validate:"required,displayname"`
-	Phone       string `json:"phone,omitempty" validate:"omitempty,max=32"`
-}
-
-type RegisterResponse struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-}
-
-func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error) {
+func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*dto.RegisterResponse, error) {
 	if err := s.validator.Validate(req); err != nil {
 		return nil, err
 	}
@@ -83,18 +68,20 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*Regis
 		return nil, fmt.Errorf("failed to generate confirmation code: %w", err)
 	}
 
-	expiresAt := time.Now().Add(15 * time.Minute)
+	expiresAt := time.Now().UTC().Add(s.confirmationCodeExpiry)
 
-	user := model.User{
+	user := domain.User{
 		ID:       uuid.New(),
 		Username: req.Username,
-		Status:   model.StatusPending,
-		Role:     model.UserRole,
-		Profile: &model.UserProfile{
+		Status:   domain.StatusPending,
+		Role:     domain.UserRole,
+		Profile: &domain.UserProfile{
 			DisplayName: req.DisplayName,
 			Phone:       req.Phone,
+			Country:     req.Country,
+			City:        req.City,
 		},
-		Security: &model.UserSecurity{
+		Security: &domain.UserSecurity{
 			Email:                 req.Email,
 			PasswordHash:          string(passwordHash),
 			EmailVerified:         false,
@@ -119,7 +106,7 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*Regis
 	// TODO: handle err when notification-service can't
 	s.kafkaProducer.SendEmailVerification(event)
 
-	return &RegisterResponse{
+	return &dto.RegisterResponse{
 		UserID: user.ID.String(),
 		Email:  user.Security.Email,
 	}, nil
@@ -140,27 +127,7 @@ func generateConfirmationCode() (string, error) {
 	return string(code), nil
 }
 
-type LoginRequest struct {
-	Identifier string `json:"identifier" validate:"required,min=3"`
-	Password   string `json:"password" validate:"required,min=8"`
-}
-
-type LoginResponse struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	User         *UserInfo `json:"user"`
-}
-
-type UserInfo struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	DisplayName string `json:"display_name"`
-	Role        string `json:"role"`
-	Status      string `json:"status"`
-}
-
-func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
+func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error) {
 	if err := s.validator.Validate(req); err != nil {
 		return nil, err
 	}
@@ -208,10 +175,10 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginRespon
 
 	_ = s.userRepo.UpdateLastLogin(ctx, user.ID)
 
-	return &LoginResponse{
+	return &dto.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User: &UserInfo{
+		User: dto.UserInfo{
 			ID:          user.ID.String(),
 			Username:    user.Username,
 			Email:       user.Security.Email,
@@ -232,16 +199,16 @@ func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code s
 		return ErrUserAlreadyVerified
 	}
 
-	savedCode, expiresAt, err := s.userRepo.GetConfirmationCode(ctx, userID)
+	savedCode, err := s.userRepo.GetConfirmationCode(ctx, userID)
 	if err != nil {
 		return err
 	}
 
-	if !expiresAt.IsZero() && time.Now().After(expiresAt) {
+	if !savedCode.ExpiresAt.IsZero() && time.Now().After(savedCode.ExpiresAt) {
 		return ErrConfirmationExpired
 	}
 
-	if savedCode != code {
+	if savedCode.Code != code {
 		return ErrInvalidConfirmation
 	}
 
@@ -250,11 +217,11 @@ func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code s
 
 		txRepo := s.userRepo.WithTx(tx)
 
-		if err := txRepo.UpdateEmailVerified(ctx, userID); err != nil {
+		if err := txRepo.UpdateEmailVerified(txCtx, userID); err != nil {
 			return err
 		}
 
-		if err := txRepo.UpdateStatus(ctx, userID, model.StatusActive); err != nil {
+		if err := txRepo.UpdateStatus(txCtx, userID, domain.StatusActive); err != nil {
 			return err
 		}
 
@@ -266,7 +233,7 @@ func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code s
 	})
 }
 
-func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*LoginResponse, error) {
+func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*dto.LoginResponse, error) {
 	claims, err := s.jwtManager.ValidateToken(refreshToken)
 	if err != nil {
 		return nil, err
@@ -308,10 +275,10 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*
 		return nil, err
 	}
 
-	return &LoginResponse{
+	return &dto.LoginResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
-		User: &UserInfo{
+		User: dto.UserInfo{
 			ID:          user.ID.String(),
 			Username:    user.Username,
 			Email:       user.Security.Email,
