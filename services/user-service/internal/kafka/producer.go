@@ -14,7 +14,7 @@ type Producer struct {
 	logger       *slog.Logger
 }
 
-func NewProducer(brokers []string, topic string, cfg config.KafkaConfig, logger *slog.Logger) (*Producer, error) {
+func NewProducer(cfg config.KafkaConfig, logger *slog.Logger) (*Producer, error) {
 	config := sarama.NewConfig()
 
 	config.Producer.RequiredAcks = cfg.RequiredAcks
@@ -28,14 +28,14 @@ func NewProducer(brokers []string, topic string, cfg config.KafkaConfig, logger 
 
 	config.Version = sarama.V3_5_0_0
 
-	syncProducer, err := sarama.NewSyncProducer(brokers, config)
+	syncProducer, err := sarama.NewSyncProducer(cfg.Brokers, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sync producer: %w", err)
 	}
 
 	return &Producer{
 		syncProducer: syncProducer,
-		topic:        topic,
+		topic:        cfg.TopicUserEvents,
 		logger:       logger,
 	}, nil
 }

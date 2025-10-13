@@ -11,12 +11,6 @@ import (
 	"time"
 )
 
-var (
-	ErrUserNotFound       = errors.New("user not found")
-	ErrUserAlreadyExists  = errors.New("user already exists")
-	ErrEmailAlreadyExists = errors.New("email already exists")
-)
-
 type UserRepository interface {
 	UserReader
 	UserWriter
@@ -85,7 +79,7 @@ func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier st
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -103,7 +97,7 @@ func (r *userRepository) UpdateStatus(ctx context.Context, userID uuid.UUID, sta
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 
 	return nil
@@ -138,7 +132,7 @@ func (r *userRepository) GetConfirmationCode(ctx context.Context, userID uuid.UU
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -182,7 +176,7 @@ func (r *userRepository) findUser(ctx context.Context, condition string, args ..
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -200,7 +194,7 @@ func (r *userRepository) updateSecurity(ctx context.Context, userID uuid.UUID, u
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 
 	return nil
@@ -215,9 +209,9 @@ func (r *userRepository) handleConstraintViolation(err error) error {
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 – unique_violation
 		switch {
 		case strings.Contains(pgErr.ConstraintName, "username"):
-			return ErrUserAlreadyExists
+			return domain.ErrUserAlreadyExists
 		case strings.Contains(pgErr.ConstraintName, "email"):
-			return ErrEmailAlreadyExists
+			return domain.ErrEmailAlreadyExists
 		}
 	}
 

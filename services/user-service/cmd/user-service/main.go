@@ -1,37 +1,69 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gin-gonic/gin"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/auth"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/handler"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/kafka"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/middleware"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/repository"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/service"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/validation"
+	"log"
+	"log/slog"
+	"os"
+
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/config"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/db"
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Config load error: %v", err)
 	}
 
-	pool, err := db.NewPgPool(cfg.DatabaseURL)
+	if err := db.RunMigrations(cfg.Database.URL, cfg.Database.MigrationsPath); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	database, err := db.NewGormDB(cfg.Database.URL)
 	if err != nil {
-		log.Fatalf("Failed to connect to DB: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer pool.Close()
 
-	if err := db.RunMigrations(cfg.DatabaseURL, cfg.MigrationsPath); err != nil {
-		log.Fatalf("Migration error: %v", err)
+	kafkaProducer, err := kafka.NewProducer(cfg.Kafka, logger)
+	if err != nil {
+		log.Fatalf("Failed to create Kafka producer: %v", err)
 	}
-	log.Println("Migrations applied successfully")
+	defer kafkaProducer.Close()
 
-	router := gin.Default()
+	validator := validation.NewValidator()
+	jwtManager := auth.NewJWTManager(&cfg.JWT)
+	txManager := repository.NewTransactionManager(database)
+	userRepo := repository.NewUserRepository(database)
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
+	authService := service.NewAuthService(
+		userRepo,
+		txManager,
+		validator,
+		jwtManager,
+		kafkaProducer,
+		cfg.Auth.ConfirmationCodeExpiry,
+	)
 
-	if err := router.Run(cfg.ServerAddress); err != nil {
-		log.Fatalf("Server error: %v", err)
+	authHandler := handler.NewAuthHandler(authService, cfg.Cookie, cfg.JWT)
+
+	engine := gin.Default()
+
+	engine.Use(middleware.ErrorHandler())
+
+	router := handler.NewRouter(authHandler)
+	router.SetupRoutes(engine)
+
+	if err := engine.Run(cfg.Server.Address); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }
