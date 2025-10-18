@@ -4,13 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/domain"
 	"regexp"
 	"strings"
 	"unicode"
-)
-
-var (
-	ErrValidationFailed = errors.New("validation failed")
 )
 
 type Validator struct {
@@ -99,7 +96,7 @@ func (v *Validator) formatValidationError(err error) error {
 		for _, fieldErr := range validationErrors {
 			errMsgs = append(errMsgs, formatFieldError(fieldErr))
 		}
-		return fmt.Errorf("%w: %s", ErrValidationFailed, strings.Join(errMsgs, "; "))
+		return fmt.Errorf("%w: %s", domain.ErrValidationFailed, strings.Join(errMsgs, "; "))
 	}
 
 	return err

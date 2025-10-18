@@ -17,15 +17,6 @@ import (
 	"time"
 )
 
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-
-	ErrEmailNotVerified    = errors.New("email not verified")
-	ErrInvalidConfirmation = errors.New("invalid confirmation code")
-	ErrConfirmationExpired = errors.New("confirmation code expired")
-	ErrUserAlreadyVerified = errors.New("user already verified")
-)
-
 type AuthService struct {
 	userRepo               repository.UserRepository
 	txManager              repository.TransactionManager
@@ -103,7 +94,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		expiresAt,
 	)
 
-	// TODO: handle err when notification-service can't
+	// TODO: handle err
 	s.kafkaProducer.SendEmailVerification(event)
 
 	return &dto.RegisterResponse{
@@ -134,8 +125,8 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 
 	user, err := s.userRepo.GetByEmailOrUsername(ctx, req.Identifier)
 	if err != nil {
-		if errors.Is(err, repository.ErrUserNotFound) {
-			return nil, ErrInvalidCredentials
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return nil, domain.ErrInvalidCredentials
 		}
 		return nil, err
 	}
@@ -144,11 +135,11 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 		[]byte(user.Security.PasswordHash),
 		[]byte(req.Password),
 	); err != nil {
-		return nil, ErrInvalidCredentials
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	if !user.Security.EmailVerified {
-		return nil, ErrEmailNotVerified
+		return nil, domain.ErrEmailNotVerified
 	}
 
 	accessToken, err := s.jwtManager.GenerateAccessToken(
@@ -196,7 +187,7 @@ func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code s
 	}
 
 	if user.Security.EmailVerified {
-		return ErrUserAlreadyVerified
+		return domain.ErrUserAlreadyVerified
 	}
 
 	savedCode, err := s.userRepo.GetConfirmationCode(ctx, userID)
@@ -205,11 +196,11 @@ func (s *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, code s
 	}
 
 	if !savedCode.ExpiresAt.IsZero() && time.Now().After(savedCode.ExpiresAt) {
-		return ErrConfirmationExpired
+		return domain.ErrConfirmationExpired
 	}
 
 	if savedCode.Code != code {
-		return ErrInvalidConfirmation
+		return domain.ErrInvalidConfirmation
 	}
 
 	return s.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -250,7 +241,7 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*
 	}
 
 	if user.Security.RefreshToken == "" || user.Security.RefreshToken != refreshToken {
-		return nil, auth.ErrInvalidToken
+		return nil, domain.ErrInvalidToken
 	}
 
 	newAccessToken, err := s.jwtManager.GenerateAccessToken(

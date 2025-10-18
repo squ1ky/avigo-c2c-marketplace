@@ -10,11 +10,6 @@ import (
 	"time"
 )
 
-var (
-	ErrInvalidToken = errors.New("invalid token")
-	ErrExpiredToken = errors.New("token has expired")
-)
-
 type TokenClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -81,14 +76,14 @@ func (m *JWTManager) ValidateToken(tokenString string) (*TokenClaims, error) {
 
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, ErrExpiredToken
+			return nil, domain.ErrExpiredToken
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrInvalidToken, err)
 	}
 
 	claims, ok := token.Claims.(*TokenClaims)
 	if !ok || !token.Valid {
-		return nil, ErrInvalidToken
+		return nil, domain.ErrInvalidToken
 	}
 
 	if err := domain.ValidateRoleString(claims.Role); err != nil {
