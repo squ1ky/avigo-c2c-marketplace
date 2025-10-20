@@ -8,7 +8,30 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-user-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U avigo_user || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  db-notification:
+    image: postgres:15
+    container_name: db-notification
+    restart: always
+    env_file:
+      - ./services/notification_service/.env
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-notification-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U avigo_notifications || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   gateway-service:
     build:
@@ -26,8 +49,10 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     depends_on:
-      - db-user
-      - kafka
+      db-user:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     env_file:
       - ./services/user-service/.env
     ports:
@@ -35,17 +60,21 @@ services:
 
   #listing-service 8082:8082
 
-#  notification-service:
-#    build:
-#      context: ./services/notification-service
-#      dockerfile: Dockerfile
-#    container_name: notification-service
-#    depends_on:
-#      - kafka
-#    env_file:
-#      - ./services/notification-service/.env
-#    ports:
-#      - "8087:8087"
+  # replace _ to -
+  notification-service:
+    build:
+      context: ./services/notification_service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    depends_on:
+      db-notification:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    env_file:
+      - ./services/notification_service/.env
+    ports:
+      - "8087:8087"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -58,12 +87,19 @@ services:
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: [ "CMD-SHELL", "echo srvr | nc localhost 2181 || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
       - "29092:29092"
@@ -77,12 +113,19 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092 || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "9000:8080"
     environment:
@@ -91,7 +134,8 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
 volumes:
-  db-data:
+  db-user-data:
+  db-notification-data:
   zookeeper-data:
   zookeeper-logs:
   kafka-data:
