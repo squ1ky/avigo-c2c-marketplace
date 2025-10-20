@@ -1,0 +1,107 @@
+.header {
+    background-color: var(--white);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Логотип */
+.logo {
+    font-size: 1.8rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.logo-avi {
+    color: var(--black);
+}
+
+.logo-go {
+    /* Градиент в Go цветах */
+    background: linear-gradient(
+            135deg,
+            #00A29C 0%,
+            #00ADD8 50%,
+            #00C7D9 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.gopher {
+    position: absolute;
+    top: -10px;
+    left: 65%;
+    transform: translateX(-50%) translateY(15px);
+    width: 15px;
+    height: auto;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: none;
+}
+
+.logo:hover .gopher {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+.nav-menu a {
+    text-decoration: none;
+    color: var(--black);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.nav-menu a:hover {
+    color: var(--go-cyan);
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+@media (max-width: 968px) {
+    .nav-menu {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-buttons {
+        display: none;
+    }
+
+    .navbar {
+        padding: 1rem;
+    }
+
+    .logo {
+        font-size: 1.5rem;
+    }
+
+    .gopher {
+        width: 35px;
+        top: -40px;
+    }
+}
