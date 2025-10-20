@@ -16,6 +16,13 @@ func ReverseProxy(targetURL string) gin.HandlerFunc {
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
+	originalDirector := proxy.Director
+
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Header.Set("X-Forwarded-Host", req.Host)
+	}
+
 	proxy.Transport = &http.Transport{
 		MaxIdleConnsPerHost:   100,
 		IdleConnTimeout:       90 * time.Second,
@@ -29,10 +36,6 @@ func ReverseProxy(targetURL string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		c.Request.URL.Host = target.Host
-		c.Request.URL.Scheme = target.Scheme
-		c.Request.Header.Set("X-Forwarded-Host", c.Request.Host)
-
 		proxy.ServeHTTP(c.Writer, c.Request)
 	}
 }
