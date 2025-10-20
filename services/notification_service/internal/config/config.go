@@ -5,15 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
-
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found")
-	}
-}
 
 type Config struct {
 	Server   ServerConfig
@@ -52,11 +45,19 @@ type EmailConfig struct {
 }
 
 func LoadConfig() (*Config, error) {
-
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 
 	setDefaults()
+
+	if err := viper.ReadInConfig(); err != nil {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
+			log.Println("No .env file found, using environment variables and defaults")
+		} else {
+			log.Printf("Error reading config file: %v", err)
+		}
+	}
 
 	cfg := &Config{
 		Server: ServerConfig{
