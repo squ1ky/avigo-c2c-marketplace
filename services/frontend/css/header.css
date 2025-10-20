@@ -1,9 +1,11 @@
 .header {
     background-color: var(--white);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     position: sticky;
     top: 0;
     z-index: 1000;
+    backdrop-filter: blur(10px);
+    transition: var(--transition);
 }
 
 .navbar {
@@ -13,8 +15,8 @@
     padding: 1rem 2rem;
     max-width: 1400px;
     margin: 0 auto;
+    gap: 2rem;
 }
-
 /* Логотип */
 .logo {
     font-size: 1.8rem;
@@ -59,49 +61,222 @@
     transform: translateX(-50%) translateY(0);
 }
 
+.search-bar {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 600px;
+    background-color: var(--gray-light);
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.search-bar:focus-within {
+    border-color: var(--go-cyan);
+    background-color: var(--white);
+    box-shadow: 0 4px 12px rgba(0, 173, 216, 0.15);
+}
+
+.search-icon {
+    color: var(--gray-medium);
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    color: var(--black);
+    outline: none;
+}
+
+.search-input::placeholder {
+    color: var(--gray-medium);
+}
+
+.search-button {
+    background-color: var(--go-cyan);
+    color: var(--white);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-left: 0.5rem;
+}
+
+.search-button:hover {
+    background-color: #0099c4;
+    transform: translateY(-1px);
+}
+
+/* Навигационное меню */
 .nav-menu {
     display: flex;
     list-style: none;
-    gap: 2rem;
+    gap: 1.5rem;
+    align-items: center;
 }
 
-.nav-menu a {
+.nav-link {
     text-decoration: none;
     color: var(--black);
     font-weight: 500;
+    font-size: 0.95rem;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    position: relative;
 }
 
-.nav-menu a:hover {
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--go-cyan);
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover {
     color: var(--go-cyan);
 }
 
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.nav-link svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Кнопки действий */
 .nav-buttons {
     display: flex;
     gap: 1rem;
+    align-items: center;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.6rem;
+    border-radius: 50%;
+    transition: var(--transition);
+    position: relative;
+    color: var(--black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background-color: var(--gray-light);
+    color: var(--go-cyan);
+}
+
+.badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: #FF3B30;
+    color: var(--white);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* Гамбургер меню */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.hamburger span {
+    width: 25px;
+    height: 3px;
+    background-color: var(--black);
+    border-radius: 3px;
+    transition: var(--transition);
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+    .search-bar {
+        max-width: 400px;
+    }
 }
 
 @media (max-width: 968px) {
     .nav-menu {
         display: none;
     }
+    
+    .search-bar {
+        max-width: 300px;
+    }
 }
 
 @media (max-width: 768px) {
-    .nav-buttons {
-        display: none;
-    }
-
     .navbar {
         padding: 1rem;
+        gap: 1rem;
     }
-
+    
     .logo {
         font-size: 1.5rem;
     }
-
+    
+    .search-bar {
+        display: none;
+    }
+    
+    .nav-buttons {
+        gap: 0.5rem;
+    }
+    
+    .nav-buttons .btn {
+        display: none;
+    }
+    
+    .hamburger {
+        display: flex;
+    }
+    
     .gopher {
         width: 35px;
         top: -40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-icon {
+        padding: 0.4rem;
+    }
+    
+    .btn-icon svg {
+        width: 20px;
+        height: 20px;
     }
 }

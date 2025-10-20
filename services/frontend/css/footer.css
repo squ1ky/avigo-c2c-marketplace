@@ -1,14 +1,82 @@
 .footer {
-    background-color: var(--black);
+    background: linear-gradient(180deg, #000000 0%, #1a1a1a 100%);
     color: var(--white);
-    padding: 3rem 20px 1rem;
+    padding: 0;
+    margin-top: 4rem;
 }
 
+.footer-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Секция подписки */
+.footer-subscribe {
+    background: linear-gradient(135deg, var(--go-cyan) 0%, #00A29C 100%);
+    padding: 3rem 2rem;
+    margin: 0 -2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.subscribe-content h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--white);
+}
+
+.subscribe-content p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+}
+
+.subscribe-form {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    max-width: 500px;
+}
+
+.subscribe-input {
+    flex: 1;
+    padding: 0.9rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--white);
+    color: var(--black);
+    outline: none;
+}
+
+.subscribe-form .btn {
+    white-space: nowrap;
+    background-color: var(--black);
+    color: var(--white);
+}
+
+.subscribe-form .btn:hover {
+    background-color: #333;
+    transform: translateY(-2px);
+}
+
+/* Основная часть футера */
 .footer-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
-    margin-bottom: 2rem;
+    grid-template-columns: 1.5fr repeat(4, 1fr);
+    gap: 3rem;
+    padding: 4rem 0 3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* О компании */
+.footer-about {
+    padding-right: 2rem;
 }
 
 .footer .logo {
@@ -16,6 +84,7 @@
     font-weight: 800;
     display: flex;
     align-items: center;
+    margin-bottom: 1rem;
 }
 
 .footer .logo-avi {
@@ -24,20 +93,65 @@
 
 .footer .logo-go {
     background: linear-gradient(
-            135deg,
-            #00A29C 0%,
-            #00ADD8 50%,
-            #00C7D9 100%
+        135deg,
+        #00A29C 0%,
+        #00ADD8 50%,
+        #00C7D9 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
+.footer-description {
+    color: var(--gray-medium);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+/* Социальные сети */
+.footer-social {
+    display: flex;
+    gap: 1rem;
+}
+
+.social-link {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: var(--white);
+    transition: var(--transition);
+}
+
+.social-link:hover {
+    background-color: var(--go-cyan);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 173, 216, 0.3);
+}
+
+/* Секции с ссылками */
 .footer-section h4 {
-    margin-bottom: 1rem;
-    color: var(--go-cyan);
+    margin-bottom: 1.2rem;
+    color: var(--white);
     font-weight: 700;
+    font-size: 1.1rem;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.footer-section h4::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 30px;
+    height: 2px;
+    background-color: var(--go-cyan);
 }
 
 .footer-section ul {
@@ -45,34 +159,250 @@
 }
 
 .footer-section ul li {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.7rem;
 }
 
 .footer-section a {
+    color: var(--gray-medium);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.95rem;
+    display: inline-block;
+}
+
+.footer-section a:hover {
+    color: var(--go-cyan);
+    transform: translateX(5px);
+}
+
+/* Контактная информация */
+.footer-contact {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-contact p {
+    color: var(--gray-medium);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.footer-contact strong {
+    color: var(--white);
+    font-size: 1.1rem;
+}
+
+/* Дополнительная информация */
+.footer-extra {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2.5rem 0;
+    gap: 2rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-apps-title,
+.footer-payment-title {
+    color: var(--white);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.app-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.app-button {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 1.2rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
     color: var(--white);
     text-decoration: none;
     transition: var(--transition);
 }
 
-.footer-section a:hover {
+.app-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--go-cyan);
+    transform: translateY(-2px);
+}
+
+.app-button div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.app-store-text {
+    font-size: 0.7rem;
+    color: var(--gray-medium);
+}
+
+.app-store-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.payment-icons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.payment-icon {
+    padding: 0.5rem 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--white);
+}
+
+/* Нижняя часть */
+.footer-bottom {
+    padding: 2rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.footer-legal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.footer-legal p {
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+}
+
+.footer-legal-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-legal-links a {
+    color: var(--gray-medium);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.footer-legal-links a:hover {
     color: var(--go-cyan);
 }
 
-.footer-section p {
+.footer-legal-links span {
     color: var(--gray-medium);
-    margin-top: 0.5rem;
 }
 
-.footer-bottom {
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+.footer-badges {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.badge-item {
     color: var(--gray-medium);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+    .footer-content {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .footer-about {
+        grid-column: 1 / -1;
+        padding-right: 0;
+    }
 }
 
 @media (max-width: 768px) {
+    .footer-container {
+        padding: 0 1rem;
+    }
+    
+    .footer-subscribe {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem 1rem;
+        margin: 0 -1rem;
+    }
+    
+    .subscribe-form {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .footer-content {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+        padding: 3rem 0 2rem;
+    }
+    
+    .footer-extra {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .app-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .app-button {
+        width: 100%;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: center;
+    }
+    
+    .footer-badges {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
     .footer-content {
         grid-template-columns: 1fr;
-        text-align: center;
+        gap: 2rem;
+    }
+    
+    .footer-section h4 {
+        font-size: 1rem;
+    }
+    
+    .subscribe-content h3 {
+        font-size: 1.4rem;
+    }
+    
+    .footer .logo {
+        justify-content: center;
+    }
+    
+    .footer-social {
+        justify-content: center;
     }
 }
