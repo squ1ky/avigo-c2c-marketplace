@@ -63,7 +63,7 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	return r.findUser(ctx, "Security.email = ?", email)
+	return r.findUser(ctx, "user_security.email = ?", email)
 }
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
@@ -74,7 +74,7 @@ func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier st
 	var user domain.User
 
 	err := r.withRelations(r.db.WithContext(ctx)).
-		Where("users.username = ? OR Security.email = ?", identifier, identifier).
+		Where("users.username = ? OR user_security.email = ?", identifier, identifier).
 		First(&user).Error
 
 	if err != nil {
@@ -163,8 +163,14 @@ func (r *userRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) 
 
 // Helpers
 
+// TODO: Joins vs Preload, N + 1 Problem here
+
 func (r *userRepository) withRelations(db *gorm.DB) *gorm.DB {
-	return db.Joins("Profile").Joins("Security")
+	return db.
+		Joins("LEFT JOIN user_profile ON user_profile.user_id = users.id").
+		Joins("LEFT JOIN user_security ON user_security.user_id = users.id").
+		Preload("Profile").
+		Preload("Security")
 }
 
 func (r *userRepository) findUser(ctx context.Context, condition string, args ...interface{}) (*domain.User, error) {
