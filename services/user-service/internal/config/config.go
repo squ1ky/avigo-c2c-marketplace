@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/IBM/sarama"
+	"log"
 	"time"
 
 	"github.com/spf13/viper"
@@ -61,6 +62,15 @@ func LoadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 
 	setDefaults()
+
+	if err := viper.ReadInConfig(); err != nil {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
+			log.Println("No .env file found, using environment variables and defaults")
+		} else {
+			log.Printf("Error reading config file: %v", err)
+		}
+	}
 
 	accessTokenDuration, err := parseDuration("ACCESS_TOKEN_DURATION")
 	if err != nil {
