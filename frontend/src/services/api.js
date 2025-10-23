@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
-    withCredentials: true,  // Sends cookies with request
+    withCredentials: true,  // Send cookies with request
     headers: {
         'Content-Type': 'application/json',
     },
@@ -35,7 +35,7 @@ api.interceptors.response.use(
 
 export const register = async (data) => {
     const response = await api.post('/auth/register', data);
-    return response.data;
+    return response.data.data;
 };
 
 export const confirmEmail = async (userId, code) => {
