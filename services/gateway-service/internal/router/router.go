@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/gateway-service/internal/config"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/gateway-service/internal/middleware"
@@ -9,6 +10,15 @@ import (
 
 func SetupRouter(cfg *config.Config) *gin.Engine {
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.CORS.AllowOrigins,
+		AllowMethods:     cfg.CORS.AllowMethods,
+		AllowHeaders:     cfg.CORS.AllowHeaders,
+		ExposeHeaders:    cfg.CORS.ExposeHeaders,
+		AllowCredentials: cfg.CORS.AllowCredentials,
+		MaxAge:           cfg.CORS.MaxAge,
+	}))
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
