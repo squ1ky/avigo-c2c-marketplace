@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Notification struct {
@@ -20,6 +21,14 @@ type Notification struct {
 	ReadAt    *time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+func (n *Notification) BeforeCreate(tx *gorm.DB) error {
+	if n.Id == uuid.Nil {
+		n.Id = uuid.New()
+	}
+
+	return nil
 }
 
 func (*Notification) TableName() string {

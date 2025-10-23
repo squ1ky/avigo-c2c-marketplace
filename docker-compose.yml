@@ -8,7 +8,28 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-user-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avigo_notifications"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    
+  db-notification:
+    image: postgres:15
+    container_name: db-notification
+    restart: always
+    env_file:
+      - ./services/notification-service/.env
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-notification-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avigo_notifications"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   gateway-service:
     build:
@@ -26,8 +47,10 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     depends_on:
-      - db-user
-      - kafka
+      db-user:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     env_file:
       - ./services/user-service/.env
     ports:
@@ -35,17 +58,20 @@ services:
 
   #listing-service 8082:8082
 
-#  notification-service:
-#    build:
-#      context: ./services/notification-service
-#      dockerfile: Dockerfile
-#    container_name: notification-service
-#    depends_on:
-#      - kafka
-#    env_file:
-#      - ./services/notification-service/.env
-#    ports:
-#      - "8087:8087"
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    depends_on:
+      db-notification:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    env_file:
+      - ./services/notification-service/.env
+    ports:
+      - "8087:8087"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -75,6 +101,11 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
     volumes:
       - kafka-data:/var/lib/kafka/data
 
@@ -91,7 +122,8 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
 volumes:
-  db-data:
+  db-user-data:
+  db-notification-data:
   zookeeper-data:
   zookeeper-logs:
   kafka-data:
