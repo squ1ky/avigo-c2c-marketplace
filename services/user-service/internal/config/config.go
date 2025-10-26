@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	Server   ServerConfig
+	GRPC     GRPCConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Auth     AuthConfig
@@ -21,6 +22,15 @@ type Config struct {
 
 type ServerConfig struct {
 	Address string
+}
+
+type GRPCConfig struct {
+	Address               string
+	MaxConnectionIdle     time.Duration
+	MaxConnectionAge      time.Duration
+	MaxConnectionAgeGrace time.Duration
+	Time                  time.Duration
+	Timeout               time.Duration
 }
 
 type DatabaseConfig struct {
@@ -91,6 +101,14 @@ func LoadConfig() (*Config, error) {
 		Server: ServerConfig{
 			Address: viper.GetString("SERVER_ADDRESS"),
 		},
+		GRPC: GRPCConfig{
+			Address:               viper.GetString("GRPC_ADDRESS"),
+			MaxConnectionIdle:     viper.GetDuration("GRPC_MAX_CONNECTION_IDLE"),
+			MaxConnectionAge:      viper.GetDuration("GRPC_MAX_CONNECTION_AGE"),
+			MaxConnectionAgeGrace: viper.GetDuration("GRPC_MAX_CONNECTION_AGE_GRACE"),
+			Time:                  viper.GetDuration("GRPC_KEEPALIVE_TIME"),
+			Timeout:               viper.GetDuration("GRPC_KEEPALIVE_TIME"),
+		},
 		Database: DatabaseConfig{
 			URL:            viper.GetString("DATABASE_URL"),
 			MigrationsPath: viper.GetString("MIGRATIONS_PATH"),
@@ -130,16 +148,28 @@ func LoadConfig() (*Config, error) {
 }
 
 func setDefaults() {
+	// HTTP Server
 	viper.SetDefault("SERVER_ADDRESS", ":8081")
 
+	// gRPC Server
+	viper.SetDefault("GRPC_ADDRESS", ":50051")
+	viper.SetDefault("GRPC_MAX_CONNECTION_IDLE", 5*time.Minute)
+	viper.SetDefault("GRPC_MAX_CONNECTION_AGE", 5*time.Minute)
+	viper.SetDefault("GRPC_MAX_CONNECTION_AGE_GRACE", 1*time.Minute)
+	viper.SetDefault("GRPC_KEEPALIVE_TIME", 2*time.Hour)
+	viper.SetDefault("GRPC_KEEPALIVE_TIMEOUT", 20*time.Second)
+
+	// JWT
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "15m")
 	viper.SetDefault("REFRESH_TOKEN_DURATION", "168h")
 	viper.SetDefault("CONFIRMATION_CODE_EXPIRY", "15m")
 
+	// Cookie
 	viper.SetDefault("COOKIE_HTTP_ONLY", true)
 	viper.SetDefault("COOKIE_SECURE", false)
 	viper.SetDefault("COOKIE_SAME_SITE", "lax")
 
+	// Kafka
 	viper.SetDefault("KAFKA_REQUIRED_ACKS", int(sarama.WaitForAll))
 	viper.SetDefault("KAFKA_COMPRESSION", int(sarama.CompressionSnappy))
 	viper.SetDefault("KAFKA_DIAL_TIMEOUT", 10*time.Second)
@@ -148,6 +178,7 @@ func setDefaults() {
 	viper.SetDefault("KAFKA_RETRY_MAX", 3)
 	viper.SetDefault("KAFKA_RETRY_BACKOFF", 100*time.Millisecond)
 
+	// Database
 	viper.SetDefault("MIGRATIONS_PATH", "internal/db/migrations")
 }
 
@@ -177,6 +208,9 @@ func validateConfig(cfg *Config) error {
 	}
 	if len(cfg.Kafka.Brokers) == 0 || cfg.Kafka.Brokers[0] == "" {
 		return errors.New("KAFKA_BROKERS is not set")
+	}
+	if cfg.GRPC.Address == "" {
+		return errors.New("GRPC_ADDRESS is not set")
 	}
 
 	return nil
