@@ -28,8 +28,8 @@ func NewConsumer(cfg *config.KafkaConfig, handler MessageHandler) *Consumer {
 		MaxBytes:       cfg.MaxBytes,
 		CommitInterval: time.Second,
 		StartOffset:    kafka.LastOffset,
-		Logger:         kafka.LoggerFunc(log.Printf),
-		ErrorLogger:    kafka.LoggerFunc(log.Printf),
+		// Logger:         kafka.LoggerFunc(log.Printf),
+		// ErrorLogger:    kafka.LoggerFunc(log.Printf),
 	})
 
 	return &Consumer{
