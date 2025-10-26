@@ -63,11 +63,13 @@ func JWTMiddleware(jwtSecret string) gin.HandlerFunc {
 		c.Request.Header.Set(HeaderUserID, claims.UserID)
 		c.Request.Header.Set(HeaderUserEmail, claims.Email)
 		c.Request.Header.Set(HeaderUserRole, claims.Role)
+
+		c.Next()
 	}
 }
 
 func extractToken(c *gin.Context) string {
-	if cookie, err := c.Cookie("access_token"); err != nil && cookie != "" {
+	if cookie, err := c.Cookie("access_token"); err == nil && cookie != "" {
 		return cookie
 	}
 
