@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/squ1ky/avigo-c2c-marketplace/services/user-service/pb;userpb";
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string display_name = 4;
+  string role = 5;
+  string status = 6;
+  UserProfile profile = 7;
+}
+
+message UserProfile {
+  string phone = 1;
+  string about = 2;
+  string country = 3;
+  string city = 4;
+  string avatar_url = 5;
+}
+
+message GetUserByIDRequest {
+  string user_id = 1;
+}
+
+message GetUserByIDResponse {
+  User user = 1;
+}
+
+message GetUsersByIDsRequest {
+  repeated string user_ids = 1;
+}
+
+message GetUsersByIDsResponse {
+  repeated User users = 1;
+}
+
+message ValidateUserRequest {
+  string user_id = 1;
+}
+
+message ValidateUserResponse {
+  bool exists = 1;
+  bool is_active = 2;
+}
+
+service UserService {
+  rpc GetUserByID(GetUserByIDRequest) returns (GetUserByIDResponse);
+  rpc GetUsersByIDs(GetUsersByIDsRequest) returns (GetUsersByIDsResponse);
+  rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
+}
