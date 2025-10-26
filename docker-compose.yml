@@ -21,7 +21,7 @@ services:
     container_name: db-notification
     restart: always
     env_file:
-      - ./services/notification_service/.env
+      - ./services/notification-service/.env
     ports:
       - "5433:5432"
     volumes:
@@ -60,10 +60,9 @@ services:
 
   #listing-service 8082:8082
 
-  # replace _ to -
   notification-service:
     build:
-      context: ./services/notification_service
+      context: ./services/notification-service
       dockerfile: Dockerfile
     container_name: notification-service
     depends_on:
@@ -72,7 +71,7 @@ services:
       kafka:
         condition: service_healthy
     env_file:
-      - ./services/notification_service/.env
+      - ./services/notification-service/.env
     ports:
       - "8087:8087"
 
