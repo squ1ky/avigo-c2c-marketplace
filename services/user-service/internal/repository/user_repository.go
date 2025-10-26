@@ -1,0 +1,229 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/user-service/internal/domain"
+	"gorm.io/gorm"
+	"strings"
+	"time"
+)
+
+type UserRepository interface {
+	UserReader
+	UserWriter
+	UserSecurityManager
+	WithTx(tx *gorm.DB) UserRepository
+}
+
+type UserReader interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByUsername(ctx context.Context, username string) (*domain.User, error)
+	GetByEmailOrUsername(ctx context.Context, identifier string) (*domain.User, error)
+}
+
+type UserWriter interface {
+	Create(ctx context.Context, user *domain.User) error
+	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.Status) error
+}
+
+type UserSecurityManager interface {
+	UpdateEmailVerified(ctx context.Context, userID uuid.UUID) error
+	UpdateRefreshToken(ctx context.Context, userID uuid.UUID, refreshToken string) error
+	UpdateLastLogin(ctx context.Context, userID uuid.UUID) error
+
+	SaveConfirmationCode(ctx context.Context, userID uuid.UUID, code string, expiresAt time.Time) error
+	GetConfirmationCode(ctx context.Context, userID uuid.UUID) (*ConfirmationCode, error)
+	ClearConfirmationCode(ctx context.Context, userID uuid.UUID) error
+}
+
+type ConfirmationCode struct {
+	Code      string
+	ExpiresAt time.Time
+}
+
+type userRepository struct {
+	db *gorm.DB
+}
+
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &userRepository{db: db}
+}
+
+func (r *userRepository) Create(ctx context.Context, user *domain.User) error {
+	err := r.db.WithContext(ctx).Create(user).Error
+	return r.handleConstraintViolation(err)
+}
+
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	return r.findUser(ctx, "users.id = ?", id)
+}
+
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	return r.findUser(ctx, "user_security.email = ?", email)
+}
+
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	return r.findUser(ctx, "users.username = ?", username)
+}
+
+func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier string) (*domain.User, error) {
+	var user domain.User
+
+	err := r.withRelations(r.db.WithContext(ctx)).
+		Where("users.username = ? OR user_security.email = ?", identifier, identifier).
+		First(&user).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *userRepository) UpdateStatus(ctx context.Context, userID uuid.UUID, status domain.Status) error {
+	result := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("status", status)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *userRepository) UpdateEmailVerified(ctx context.Context, userID uuid.UUID) error {
+	return r.updateSecurity(ctx, userID, map[string]interface{}{
+		"email_verified": true,
+	})
+}
+
+func (r *userRepository) UpdateRefreshToken(ctx context.Context, userID uuid.UUID, refreshToken string) error {
+	return r.updateSecurity(ctx, userID, map[string]interface{}{
+		"refresh_token": refreshToken,
+	})
+}
+
+func (r *userRepository) SaveConfirmationCode(ctx context.Context, userID uuid.UUID, code string, expiresAt time.Time) error {
+	return r.updateSecurity(ctx, userID, map[string]interface{}{
+		"confirmation_code":       code,
+		"confirmation_expires_at": expiresAt,
+	})
+}
+
+func (r *userRepository) GetConfirmationCode(ctx context.Context, userID uuid.UUID) (*ConfirmationCode, error) {
+	var security domain.UserSecurity
+
+	err := r.db.WithContext(ctx).
+		Select("confirmation_code", "confirmation_expires_at").
+		Where("user_id = ?", userID).
+		First(&security).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	expiresAt := time.Time{}
+	if security.ConfirmationExpiresAt != nil {
+		expiresAt = *security.ConfirmationExpiresAt
+	}
+
+	return &ConfirmationCode{
+		Code:      security.ConfirmationCode,
+		ExpiresAt: expiresAt,
+	}, nil
+}
+
+func (r *userRepository) ClearConfirmationCode(ctx context.Context, userID uuid.UUID) error {
+	return r.updateSecurity(ctx, userID, map[string]interface{}{
+		"confirmation_code":       nil,
+		"confirmation_expires_at": nil,
+	})
+}
+
+func (r *userRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) error {
+	return r.updateSecurity(ctx, userID, map[string]interface{}{
+		"last_login_at": time.Now(),
+	})
+}
+
+// Helpers
+
+// TODO: Joins vs Preload, N + 1 Problem here
+
+func (r *userRepository) withRelations(db *gorm.DB) *gorm.DB {
+	return db.
+		Joins("LEFT JOIN user_profile ON user_profile.user_id = users.id").
+		Joins("LEFT JOIN user_security ON user_security.user_id = users.id").
+		Preload("Profile").
+		Preload("Security")
+}
+
+func (r *userRepository) findUser(ctx context.Context, condition string, args ...interface{}) (*domain.User, error) {
+	var user domain.User
+
+	err := r.withRelations(r.db.WithContext(ctx)).
+		Where(condition, args...).
+		First(&user).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *userRepository) updateSecurity(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error {
+	result := r.db.WithContext(ctx).
+		Model(&domain.UserSecurity{}).
+		Where("user_id = ?", userID).
+		Updates(updates)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *userRepository) handleConstraintViolation(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 – unique_violation
+		switch {
+		case strings.Contains(pgErr.ConstraintName, "username"):
+			return domain.ErrUserAlreadyExists
+		case strings.Contains(pgErr.ConstraintName, "email"):
+			return domain.ErrEmailAlreadyExists
+		}
+	}
+
+	return err
+}
+
+func (r *userRepository) WithTx(tx *gorm.DB) UserRepository {
+	return &userRepository{db: tx}
+}
