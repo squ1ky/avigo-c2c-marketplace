@@ -1,0 +1,323 @@
+.auth-page {
+    min-height: calc(100vh - 300px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 2rem 1rem;
+}
+
+.auth-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 3rem;
+    width: 100%;
+    max-width: 600px;
+    position: relative;
+}
+
+.auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--go-cyan) 0%, #00A29C 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+/* Заголовок */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.auth-logo .logo-avi {
+    color: var(--black);
+}
+
+.auth-logo .logo-go {
+    background: linear-gradient(135deg, #00A29C 0%, #00ADD8 50%, #00C7D9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.auth-logo img {
+    display: none;
+}
+
+.auth-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    color: var(--gray-medium);
+    font-size: 0.95rem;
+}
+
+/* Форма */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--black);
+    font-size: 0.9rem;
+}
+
+.form-label .required {
+    color: #ff4444;
+}
+
+.form-input {
+    padding: 0.875rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    transition: var(--transition);
+    background-color: var(--white);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--go-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 173, 216, 0.1);
+}
+
+.form-input.error {
+    border-color: #ff4444;
+}
+
+.form-input.success {
+    border-color: #00aa00;
+}
+
+.form-select {
+    padding: 0.875rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    transition: var(--transition);
+    background-color: var(--white);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23999999' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 3rem;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--go-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 173, 216, 0.1);
+}
+
+.form-select.error {
+    border-color: #ff4444;
+}
+
+.form-select:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Ошибки валидации */
+.form-error {
+    color: #ff4444;
+    font-size: 0.85rem;
+    margin-top: -0.25rem;
+}
+
+/* Password strength meter */
+.password-strength {
+    margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.password-strength-fill {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.password-strength-label {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
+.auth-submit {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--go-cyan);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-top: 0.5rem;
+}
+
+.auth-submit:hover:not(:disabled) {
+    background-color: #0099c4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 173, 216, 0.3);
+}
+
+.auth-submit:disabled {
+    background-color: var(--gray-medium);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e0e0e0;
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+}
+
+.auth-footer a {
+    color: var(--go-cyan);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+.code-input-group {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.code-input {
+    width: 50px;
+    height: 60px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: var(--go-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 173, 216, 0.1);
+}
+
+.code-input.filled {
+    border-color: var(--go-cyan);
+    background-color: rgba(0, 173, 216, 0.05);
+}
+
+/* Таймер */
+.resend-timer {
+    text-align: center;
+    margin-top: 1rem;
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+}
+
+.resend-button {
+    background: none;
+    border: none;
+    color: var(--go-cyan);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: underline;
+}
+
+.resend-button:disabled {
+    color: var(--gray-medium);
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .auth-card {
+        padding: 2rem 1.5rem;
+        max-width: 100%;
+    }
+
+    .auth-title {
+        font-size: 1.3rem;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .code-input {
+        width: 45px;
+        height: 55px;
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .code-input-group {
+        gap: 0.5rem;
+    }
+
+    .code-input {
+        width: 40px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+}
