@@ -1,0 +1,137 @@
+.features {
+    padding: 80px 20px;
+    background-color: var(--gray-light);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.feature-card {
+    background-color: var(--white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
+    text-align: center;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    color: var(--go-cyan);
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    margin-bottom: 1rem;
+    color: var(--black);
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.feature-card p {
+    color: var(--gray-medium);
+    line-height: 1.6;
+}
+
+/* How It Works */
+.how-it-works {
+    padding: 80px 20px;
+    background-color: var(--white);
+}
+
+.steps {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.step {
+    text-align: center;
+    max-width: 300px;
+}
+
+.step-number {
+    width: 60px;
+    height: 60px;
+    background-color: var(--go-cyan);
+    color: var(--white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 auto 1rem;
+}
+
+.step h3 {
+    margin-bottom: 0.5rem;
+    color: var(--black);
+    font-weight: 700;
+}
+
+.step p {
+    color: var(--gray-medium);
+}
+
+/* Categories */
+.categories {
+    padding: 80px 20px;
+    background-color: var(--gray-light);
+}
+
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.category-card {
+    background-color: var(--white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 2px solid transparent;
+}
+
+.category-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: var(--go-cyan);
+}
+
+.category-icon {
+    font-size: 2.5rem;
+    color: var(--go-cyan);
+    margin-bottom: 0.5rem;
+}
+
+.category-name {
+    font-weight: 600;
+    color: var(--black);
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .features-grid,
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .steps {
+        flex-direction: column;
+        align-items: center;
+    }
+}
