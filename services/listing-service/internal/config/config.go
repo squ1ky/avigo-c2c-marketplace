@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -19,10 +18,8 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Address      string        `mapstructure:"address"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	LogLevel     string        `mapstructure:"log_level"`
+	Address  string `mapstructure:"address"`
+	LogLevel string `mapstructure:"log_level"`
 }
 
 type PostgresConfig struct {
@@ -67,7 +64,7 @@ type S3Config struct {
 	SecretAccessKey string   `mapstructure:"secret_access_key"`
 	Endpoint        string   `mapstructure:"endpoint"`
 	UseSSL          bool     `mapstructure:"use_ssl"`
-	MaxFileSize     int64    `mapstructure:"max_file_size"`
+	MaxFileSize     int      `mapstructure:"max_file_size"`
 	AllowedTypes    []string `mapstructure:"allowed_types"`
 	PublicURL       string   `mapstructure:"public_url"`
 }
@@ -83,16 +80,12 @@ type KafkaConfig struct {
 }
 
 func Load() (*Config, error) {
-	v := viper.New()
+	viper.SetConfigFile(".env")
+	viper.AutomaticEnv()
 
-	v.SetConfigFile(".env")
-	v.SetConfigType("env")
+	setDefaults()
 
-	v.AutomaticEnv()
-
-	setDefaults(v)
-
-	if err := v.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
 			log.Println("⚠️  .env file not found, using environment variables and defaults")
@@ -101,18 +94,54 @@ func Load() (*Config, error) {
 		}
 	}
 
-	cfg := &Config{}
-
-	if err := v.Unmarshal(cfg); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal config: %w", err)
-	}
-
-	if brokersStr := v.GetString("KAFKA_BROKERS"); brokersStr != "" {
-		cfg.Kafka.Brokers = parseCommaSeparated(brokersStr)
-	}
-
-	if allowedTypesStr := v.GetString("S3_ALLOWED_TYPES"); allowedTypesStr != "" {
-		cfg.S3.AllowedTypes = parseCommaSeparated(allowedTypesStr)
+	cfg := &Config{
+		ServerConfig{
+			Address:  viper.GetString("SERVER_ADDRESS"),
+			LogLevel: viper.GetString("LOG_LEVEL"),
+		},
+		PostgresConfig{
+			Host:            viper.GetString("SERVER_ADDRESS"),
+			Port:            viper.GetInt("POSTGRES_PORT"),
+			User:            viper.GetString("POSTGRES_USER"),
+			Password:        viper.GetString("POSTGRES_PASSWORD"),
+			Database:        viper.GetString("POSTGRES_DB"),
+			SSLMode:         viper.GetString("POSTGRES_SSLMODE"),
+			MaxOpenConns:    viper.GetInt("POSTGRES_MAX_OPEN_CONNS"),
+			MaxIdleConns:    viper.GetInt("POSTGRES_MAX_IDLE_CONNS"),
+			ConnMaxLifetime: viper.GetDuration("POSTGRES_CONN_MAX_LIFETIME"),
+			MigrationsPath:  viper.GetString("POSTGRES_MIGRATIONS_PATH"),
+			URL:             viper.GetString("DATABASE_URL"),
+		},
+		MongoConfig{
+			URI:                  viper.GetString("MONGODB_URI"),
+			Database:             viper.GetString("MONGODB_DATABASE"),
+			ConnectTimeout:       viper.GetDuration("MONGODB_CONNECT_TIMEOUT"),
+			MaxPoolSize:          viper.GetUint64("MONGODB_MAX_POOL_SIZE"),
+			MinPoolSize:          viper.GetUint64("MONGODB_MIN_POOL_SIZE"),
+			TagsCollection:       viper.GetString("MONGODB_TAGS_COLLECTION"),
+			CategoriesCollection: viper.GetString("MONGODB_CATEGORIES_COLLECTION"),
+			MetadataCollection:   viper.GetString("MONGODB_METADATA_COLLECTION"),
+		},
+		S3Config{
+			Region:          viper.GetString("S3_REGION"),
+			Bucket:          viper.GetString("S3_BUCKET"),
+			AccessKeyID:     viper.GetString("S3_ACCESS_KEY_ID"),
+			SecretAccessKey: viper.GetString("S3_SECRET_ACCESS_KEY"),
+			Endpoint:        viper.GetString("S3_ENDPOINT"),
+			UseSSL:          viper.GetBool("S3_USE_SSL"),
+			MaxFileSize:     viper.GetInt("S3_MAX_FILE_SIZE"),
+			AllowedTypes:    viper.GetStringSlice("S3_ALLOWED_TYPES"),
+			PublicURL:       viper.GetString("S3_PUBLIC_URL"),
+		},
+		KafkaConfig{
+			Brokers:             []string{viper.GetString("KAFKA_BROKERS")},
+			TopicListingsEvents: viper.GetString("KAFKA_TOPIC_LISTINGS_EVENTS"),
+			GroupID:             viper.GetString("KAFKA_GROUP_ID"),
+			RequiredAcks:        viper.GetInt("KAFKA_REQUIRED_ACKS"),
+			Compression:         viper.GetString("KAFKA_COMPRESSION"),
+			WriteTimeout:        viper.GetDuration("KAFKA_WRITE_TIMEOUT"),
+			RetryMax:            viper.GetInt("KAFKA_RETRY_MAX"),
+		},
 	}
 
 	if err := validateConfig(cfg); err != nil {
@@ -122,45 +151,43 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-func setDefaults(v *viper.Viper) {
+func setDefaults() {
 
-	v.SetDefault("SERVER_ADDRESS", ":8083")
-	v.SetDefault("SERVER_READ_TIMEOUT", 15*time.Second)
-	v.SetDefault("SERVER_WRITE_TIMEOUT", 15*time.Second)
-	v.SetDefault("LOG_LEVEL", "info")
+	viper.SetDefault("SERVER_ADDRESS", ":8083")
+	viper.SetDefault("LOG_LEVEL", "info")
 
-	v.SetDefault("POSTGRES_HOST", "localhost")
-	v.SetDefault("POSTGRES_PORT", 5432)
-	v.SetDefault("POSTGRES_USER", "avigo_listings")
-	v.SetDefault("POSTGRES_DB", "avigo_listings")
-	v.SetDefault("POSTGRES_SSLMODE", "disable")
-	v.SetDefault("POSTGRES_MAX_OPEN_CONNS", 25)
-	v.SetDefault("POSTGRES_MAX_IDLE_CONNS", 5)
-	v.SetDefault("POSTGRES_CONN_MAX_LIFETIME", 5*time.Minute)
-	v.SetDefault("POSTGRES_MIGRATIONS_PATH", "migrations")
+	viper.SetDefault("SERVER_ADDRESS", "localhost")
+	viper.SetDefault("POSTGRES_PORT", 5432)
+	viper.SetDefault("POSTGRES_USER", "avigo_listings")
+	viper.SetDefault("POSTGRES_DB", "avigo_listings")
+	viper.SetDefault("POSTGRES_SSLMODE", "disable")
+	viper.SetDefault("POSTGRES_MAX_OPEN_CONNS", 25)
+	viper.SetDefault("POSTGRES_MAX_IDLE_CONNS", 5)
+	viper.SetDefault("POSTGRES_CONN_MAX_LIFETIME", 5*time.Minute)
+	viper.SetDefault("POSTGRES_MIGRATIONS_PATH", "migrations")
 
-	v.SetDefault("MONGODB_URI", "mongodb://localhost:27017")
-	v.SetDefault("MONGODB_DATABASE", "listings_metadata")
-	v.SetDefault("MONGODB_CONNECT_TIMEOUT", 10*time.Second)
-	v.SetDefault("MONGODB_MAX_POOL_SIZE", 100)
-	v.SetDefault("MONGODB_MIN_POOL_SIZE", 10)
-	v.SetDefault("MONGODB_TAGS_COLLECTION", "tags")
-	v.SetDefault("MONGODB_CATEGORIES_COLLECTION", "categories")
-	v.SetDefault("MONGODB_METADATA_COLLECTION", "listing_metadata")
+	viper.SetDefault("MONGODB_URI", "mongodb://localhost:27017")
+	viper.SetDefault("MONGODB_DATABASE", "listings_metadata")
+	viper.SetDefault("MONGODB_CONNECT_TIMEOUT", 10*time.Second)
+	viper.SetDefault("MONGODB_MAX_POOL_SIZE", 100)
+	viper.SetDefault("MONGODB_MIN_POOL_SIZE", 10)
+	viper.SetDefault("MONGODB_TAGS_COLLECTION", "tags")
+	viper.SetDefault("MONGODB_CATEGORIES_COLLECTION", "categories")
+	viper.SetDefault("MONGODB_METADATA_COLLECTION", "listing_metadata")
 
-	v.SetDefault("S3_REGION", "us-east-1")
-	v.SetDefault("S3_BUCKET", "avigo-listings-media")
-	v.SetDefault("S3_USE_SSL", true)
-	v.SetDefault("S3_MAX_FILE_SIZE", 10*1024*1024) // 10MB
-	v.SetDefault("S3_ALLOWED_TYPES", "image/jpeg,image/png,image/webp,video/mp4")
+	viper.SetDefault("S3_REGION", "us-east-1")
+	viper.SetDefault("S3_BUCKET", "avigo-listings-media")
+	viper.SetDefault("S3_USE_SSL", true)
+	viper.SetDefault("S3_MAX_FILE_SIZE", 10*1024*1024) // 10MB
+	viper.SetDefault("S3_ALLOWED_TYPES", "image/jpeg,image/png,image/webp,video/mp4")
 
-	v.SetDefault("KAFKA_BROKERS", "localhost:9092")
-	v.SetDefault("KAFKA_TOPIC_LISTINGS_EVENTS", "listing.events")
-	v.SetDefault("KAFKA_GROUP_ID", "listing-service")
-	v.SetDefault("KAFKA_REQUIRED_ACKS", -1)
-	v.SetDefault("KAFKA_COMPRESSION", "snappy")
-	v.SetDefault("KAFKA_WRITE_TIMEOUT", 10*time.Second)
-	v.SetDefault("KAFKA_RETRY_MAX", 3)
+	viper.SetDefault("KAFKA_BROKERS", "localhost:9092")
+	viper.SetDefault("KAFKA_TOPIC_LISTINGS_EVENTS", "listing.events")
+	viper.SetDefault("KAFKA_GROUP_ID", "listing-service")
+	viper.SetDefault("KAFKA_REQUIRED_ACKS", -1)
+	viper.SetDefault("KAFKA_COMPRESSION", "snappy")
+	viper.SetDefault("KAFKA_WRITE_TIMEOUT", 10*time.Second)
+	viper.SetDefault("KAFKA_RETRY_MAX", 3)
 }
 
 func validateConfig(cfg *Config) error {
@@ -185,16 +212,4 @@ func validateConfig(cfg *Config) error {
 	}
 
 	return nil
-}
-
-func parseCommaSeparated(input string) []string {
-	parts := strings.Split(input, ",")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
 }
