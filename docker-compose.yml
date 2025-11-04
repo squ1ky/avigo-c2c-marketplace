@@ -2,7 +2,7 @@ services:
   db-user:
     image: postgres:15
     container_name: db-user
-    restart: always
+    restart: unless-stopped
     env_file:
       - ./services/user-service/.env
     ports:
@@ -19,7 +19,7 @@ services:
   db-notification:
     image: postgres:15
     container_name: db-notification
-    restart: always
+    restart: unless-stopped
     env_file:
       - ./services/notification-service/.env
     ports:
@@ -31,6 +31,67 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
+
+  db-listing:
+    image: postgres:15
+    container_name: db-listing
+    restart: unless-stopped
+    env_file:
+      - ./services/listing-service/.env
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-listing-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U avigo_listings -d avigo_listings" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mongo-listing:
+    image: mongo:7.0
+    container_name: mongo-listing
+    restart: unless-stopped
+    command: ["--quiet"]
+    env_file:
+      - ./services/listing-service/.env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-listing-data:/data/db
+      - mongodb-listing-config:/data/configdb
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "127.0.0.1/test", "--eval", "quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9002:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
       start_period: 10s
 
   gateway-service:
@@ -58,7 +119,24 @@ services:
     ports:
       - "8081:8081"
 
-  #listing-service 8082:8082
+  listing-service:
+    build:
+      context: ./services/listing-service
+      dockerfile: Dockerfile
+    container_name: listing-service
+    depends_on:
+      db-listing:
+        condition: service_healthy
+      mongo-listing:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    env_file:
+      - ./services/listing-service/.env
+    ports:
+      - "8082:8082"
 
   notification-service:
     build:
@@ -126,7 +204,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "9000:8080"
+      - "8090:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
@@ -148,6 +226,10 @@ services:
 volumes:
   db-user-data:
   db-notification-data:
+  db-listing-data:
+  mongodb-listing-data:
+  mongodb-listing-config:
+  minio-data:
   zookeeper-data:
   zookeeper-logs:
   kafka-data:
