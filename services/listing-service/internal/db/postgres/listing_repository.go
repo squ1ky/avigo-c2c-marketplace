@@ -12,15 +12,26 @@ import (
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
 )
 
-type ListingRepository struct {
+type ListingRepository interface {
+	Create(ctx context.Context, listing *domain.Listing) error
+	GetByID(ctx context.Context, id string) (*domain.Listing, error)
+	Update(ctx context.Context, listing *domain.Listing) error
+	Delete(ctx context.Context, id string) error
+	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Listing, error)
+	AddPhoto(ctx context.Context, photo *domain.Photo) error
+	GetPhotos(ctx context.Context, listingID []string) ([]*domain.Photo, error)
+	DeletePhoto(ctx context.Context, photoId string) error
+}
+
+type PgListingRepository struct {
 	db *sql.DB
 }
 
-func NewListingRepository(db *sql.DB) *ListingRepository {
-	return &ListingRepository{db: db}
+func NewPgListingRepository(db *sql.DB) *PgListingRepository {
+	return &PgListingRepository{db: db}
 }
 
-func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
+func (r *PgListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
 	listing.ID = uuid.New().String()
 	listing.CreatedAt = time.Now()
 	listing.UpdatedAt = time.Now()
@@ -69,7 +80,7 @@ func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing)
 	return nil
 }
 
-func (r *ListingRepository) GetByID(ctx context.Context, id string) (*domain.Listing, error) {
+func (r *PgListingRepository) GetByID(ctx context.Context, id string) (*domain.Listing, error) {
 	query := `
 		SELECT
 			id, user_id, title, description, price, currency, category_id,
@@ -129,7 +140,7 @@ func (r *ListingRepository) GetByID(ctx context.Context, id string) (*domain.Lis
 	return listing, nil
 }
 
-func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing) error {
+func (r *PgListingRepository) Update(ctx context.Context, listing *domain.Listing) error {
 	listing.UpdatedAt = time.Now()
 
 	metadataJSON, err := json.Marshal(listing.Metadata)
@@ -180,7 +191,7 @@ func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing)
 	return nil
 }
 
-func (r *ListingRepository) Delete(ctx context.Context, id string) error {
+func (r *PgListingRepository) Delete(ctx context.Context, id string) error {
 	query := `
         UPDATE listings SET
             status = $2, updated_at = $3
@@ -203,7 +214,7 @@ func (r *ListingRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *ListingRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Listing, error) {
+func (r *PgListingRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Listing, error) {
 	query := `
         SELECT 
             id, user_id, title, description, price, currency, category_id,
@@ -224,7 +235,7 @@ func (r *ListingRepository) FindByUserID(ctx context.Context, userID string, lim
 	return r.scanListings(rows)
 }
 
-func (r *ListingRepository) scanListings(rows *sql.Rows) ([]*domain.Listing, error) {
+func (r *PgListingRepository) scanListings(rows *sql.Rows) ([]*domain.Listing, error) {
 	var listings []*domain.Listing
 
 	for rows.Next() {

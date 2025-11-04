@@ -153,7 +153,7 @@ func Load() (*Config, error) {
 
 func setDefaults() {
 
-	viper.SetDefault("SERVER_ADDRESS", ":8083")
+	viper.SetDefault("SERVER_ADDRESS", ":8082")
 	viper.SetDefault("LOG_LEVEL", "info")
 
 	viper.SetDefault("SERVER_ADDRESS", "localhost")
