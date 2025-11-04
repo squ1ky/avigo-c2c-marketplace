@@ -90,13 +90,10 @@ func main() {
 	}
 
 	log.Println("Closing PostgreSQL connection...")
-	sqlDB, err := postgresDB.DB()
-	if err == nil {
-		if err := sqlDB.Close(); err != nil {
-			log.Printf("Error closing PostgreSQL connection: %v", err)
-		} else {
-			log.Println("PostgreSQL connection closed")
-		}
+	if err := postgresDB.Close(); err != nil {
+		log.Printf("Error closing PostgreSQL connection: %v", err)
+	} else {
+		log.Println("PostgreSQL connection closed")
 	}
 
 	log.Println("\n" + strings.Repeat("=", 60))
