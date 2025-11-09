@@ -120,8 +120,7 @@ func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, l
 	`
 
 	var listings []domain.Listing
-	err := r.db.SelectContext(ctx, &listings, query, userID, limit, offset)
-	if err != nil {
+	if err := r.db.SelectContext(ctx, &listings, query, userID, limit, offset); err != nil {
 		return nil, fmt.Errorf("failed to get listings by user: %w", err)
 	}
 
@@ -149,8 +148,7 @@ func (r *ListingRepository) GetByCategoryID(ctx context.Context, categoryID uuid
 	`
 
 	var listings []domain.Listing
-	err := r.db.SelectContext(ctx, &listings, query, categoryID, limit, offset)
-	if err != nil {
+	if err := r.db.SelectContext(ctx, &listings, query, categoryID, limit, offset); err != nil {
 		return nil, fmt.Errorf("failed to get listings by category: %w", err)
 	}
 
