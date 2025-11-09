@@ -3,272 +3,155 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"time"
-
 	"github.com/google/uuid"
-	"github.com/lib/pq"
+	"github.com/jmoiron/sqlx"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
+	"time"
 )
 
-type ListingRepository interface {
-	Create(ctx context.Context, listing *domain.Listing) error
-	GetByID(ctx context.Context, id string) (*domain.Listing, error)
-	Update(ctx context.Context, listing *domain.Listing) error
-	Delete(ctx context.Context, id string) error
-	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Listing, error)
-	AddPhoto(ctx context.Context, photo *domain.Photo) error
-	GetPhotos(ctx context.Context, listingID []string) ([]*domain.Photo, error)
-	DeletePhoto(ctx context.Context, photoId string) error
+type ListingRepository struct {
+	db *sqlx.DB
 }
 
-type PgListingRepository struct {
-	db *sql.DB
+func NewListingRepository(db *sqlx.DB) *ListingRepository {
+	return &ListingRepository{db: db}
 }
 
-func NewPgListingRepository(db *sql.DB) *PgListingRepository {
-	return &PgListingRepository{db: db}
-}
-
-func (r *PgListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
-	listing.ID = uuid.New().String()
-	listing.CreatedAt = time.Now()
-	listing.UpdatedAt = time.Now()
-
-	metadataJSON, err := json.Marshal(listing.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
-	}
-
-	locationJSON, err := json.Marshal(listing.Location)
-	if err != nil {
-		return fmt.Errorf("failed to marshal location: %w", err)
-	}
-
+func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
 	query := `
-		INSERT INTO listings (
-			id, user_id, title, description, price, currency, category_id,
-			status, photo_ids, video_ids, tags, views_count,
-			location, metadata, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		INSERT INTO listings (id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at)
+		VALUES (:id, :user_id, :category_id, :title, :description, :price, :currency, :status, :views_count, :created_at, :updated_at)
 	`
 
-	_, err = r.db.ExecContext(ctx, query,
-		listing.ID,
-		listing.UserID,
-		listing.Title,
-		listing.Description,
-		listing.Price,
-		listing.Currency,
-		listing.CategoryID,
-		listing.Status,
-		pq.Array(listing.ID),
-		pq.Array(listing.VideoIDs),
-		pq.Array(listing.Tags),
-		listing.ViewsCount,
-		locationJSON,
-		metadataJSON,
-		listing.CreatedAt,
-		listing.UpdatedAt,
-	)
+	listing.ID = uuid.New()
+	listing.CreatedAt = time.Now()
+	listing.UpdatedAt = time.Now()
+	listing.ViewsCount = 0
+	listing.Status = domain.ListingStatusActive
 
+	_, err := r.db.ExecContext(ctx, query, listing)
 	if err != nil {
-		return fmt.Errorf("failed to insert listing: %w", err)
+		return fmt.Errorf("failed to create listing: %w", err)
 	}
 
 	return nil
 }
 
-func (r *PgListingRepository) GetByID(ctx context.Context, id string) (*domain.Listing, error) {
+func (r *ListingRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	query := `
-		SELECT
-			id, user_id, title, description, price, currency, category_id,
-			status, photo_ids, video_ids, tags, views_count,
-			location, metadata, created_at, updated_at, published_at, expires_at,
-		FROM listlings
-		WHERE id = $1 AND status != $2
+		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at
+		FROM listings
+		WHERE id = $1
 	`
 
-	listing := &domain.Listing{}
-	var locationJSON, metadataJSON []byte
-	var publishedAt, expiresAt sql.NullTime
-
-	err := r.db.QueryRowContext(ctx, query, id, domain.StatusDeleted).Scan(
-		&listing.ID,
-		&listing.UserID,
-		&listing.Title,
-		&listing.Description,
-		&listing.Price,
-		&listing.Currency,
-		&listing.CategoryID,
-		&listing.Status,
-		pq.Array(&listing.PhotoIDs),
-		pq.Array(&listing.VideoIDs),
-		pq.Array(&listing.Tags),
-		&listing.ViewsCount,
-		&locationJSON,
-		&metadataJSON,
-		&listing.CreatedAt,
-		&listing.UpdatedAt,
-		&publishedAt,
-		&expiresAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("listing not found")
-	}
-
+	var listing domain.Listing
+	err := r.db.GetContext(ctx, &listing, query, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("listing not found: %w", err)
+		}
 		return nil, fmt.Errorf("failed to get listing: %w", err)
 	}
 
-	if err := json.Unmarshal(locationJSON, &listing.Location); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal location: %w", err)
-	}
-
-	if err := json.Unmarshal(metadataJSON, &listing.Metadata); err != nil {
-		return nil, fmt.Errorf("failed to unmmarshal metadata: %w", err)
-	}
-	if publishedAt.Valid {
-		listing.PublishedAt = &publishedAt.Time
-	}
-	if expiresAt.Valid {
-		listing.ExpiresAt = &expiresAt.Time
-	}
-
-	return listing, nil
+	return &listing, nil
 }
 
-func (r *PgListingRepository) Update(ctx context.Context, listing *domain.Listing) error {
+func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing) error {
+	query := `
+		UPDATE listings
+		SET title = :title,
+		    description = :description,
+		    price = :price,
+		    currency = :currency,
+		    status = :status,
+		    category = :category_id,
+		    updated_at = :updated_at
+		WHERE id = :id
+	`
+
 	listing.UpdatedAt = time.Now()
 
-	metadataJSON, err := json.Marshal(listing.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
-	}
-
-	locationJSON, err := json.Marshal(listing.Location)
-	if err != nil {
-		return fmt.Errorf("failed to marshal location: %w", err)
-	}
-
-	query := `
-        UPDATE listings SET
-            title = $2, description = $3, price = $4, currency = $5,
-            category_id = $6, photo_ids = $7, video_ids = $8, tags = $9,
-            location = $10, metadata = $11, updated_at = $12
-        WHERE id = $1
-    `
-
-	result, err := r.db.ExecContext(ctx, query,
-		listing.ID,
-		listing.Title,
-		listing.Description,
-		listing.Price,
-		listing.Currency,
-		listing.CategoryID,
-		pq.Array(listing.PhotoIDs),
-		pq.Array(listing.VideoIDs),
-		pq.Array(listing.Tags),
-		locationJSON,
-		metadataJSON,
-		listing.UpdatedAt,
-	)
-
+	result, err := r.db.NamedExecContext(ctx, query, listing)
 	if err != nil {
 		return fmt.Errorf("failed to update listing: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	if rows == 0 {
+
+	if rowsAffected == 0 {
 		return fmt.Errorf("listing not found")
 	}
 
 	return nil
 }
 
-func (r *PgListingRepository) Delete(ctx context.Context, id string) error {
-	query := `
-        UPDATE listings SET
-            status = $2, updated_at = $3
-        WHERE id = $1
-    `
+func (r *ListingRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM listings WHERE id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, id, domain.StatusDeleted, time.Now())
+	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete listing: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	if rows == 0 {
+
+	if rowsAffected == 0 {
 		return fmt.Errorf("listing not found")
 	}
 
 	return nil
 }
 
-func (r *PgListingRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Listing, error) {
+func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.Listing, error) {
 	query := `
-        SELECT 
-            id, user_id, title, description, price, currency, category_id,
-            status, photo_ids, video_ids, tags, views_count,
-            location, metadata, created_at, updated_at, published_at, expires_at
-        FROM listings
-        WHERE user_id = $1 AND status != $2
-        ORDER BY created_at DESC
-        LIMIT $3 OFFSET $4
-    `
+		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at
+		FROM listings
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID, domain.StatusDeleted, limit, offset)
+	var listings []domain.Listing
+	err := r.db.SelectContext(ctx, &listings, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query listings: %w", err)
+		return nil, fmt.Errorf("failed to get listings by user: %w", err)
 	}
-	defer rows.Close()
 
-	return r.scanListings(rows)
+	return listings, nil
 }
 
-func (r *PgListingRepository) scanListings(rows *sql.Rows) ([]*domain.Listing, error) {
-	var listings []*domain.Listing
+func (r *ListingRepository) IncrementViews(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE listings SET views_count = views_count + 1 WHERE id = $1`
 
-	for rows.Next() {
-		listing := &domain.Listing{}
-		var locationJSON, metadataJSON []byte
-		var publishedAt, expiresAt sql.NullTime
+	_, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to increment views: %w", err)
+	}
 
-		err := rows.Scan(
-			&listing.ID, &listing.UserID, &listing.Title, &listing.Description,
-			&listing.Price, &listing.Currency, &listing.CategoryID, &listing.Status,
-			pq.Array(&listing.PhotoIDs), pq.Array(&listing.VideoIDs), pq.Array(&listing.Tags),
-			&listing.ViewsCount, &locationJSON, &metadataJSON,
-			&listing.CreatedAt, &listing.UpdatedAt, &publishedAt, &expiresAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan listing: %w", err)
-		}
+	return nil
+}
 
-		if err := json.Unmarshal(locationJSON, &listing.Location); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(metadataJSON, &listing.Metadata); err != nil {
-			return nil, err
-		}
+func (r *ListingRepository) GetByCategoryID(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]domain.Listing, error) {
+	query := `
+		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at
+		FROM listings
+		WHERE category_id = $1 AND status = 'active'
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
 
-		if publishedAt.Valid {
-			listing.PublishedAt = &publishedAt.Time
-		}
-		if expiresAt.Valid {
-			listing.ExpiresAt = &expiresAt.Time
-		}
-
-		listings = append(listings, listing)
+	var listings []domain.Listing
+	err := r.db.SelectContext(ctx, &listings, query, categoryID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listings by category: %w", err)
 	}
 
 	return listings, nil

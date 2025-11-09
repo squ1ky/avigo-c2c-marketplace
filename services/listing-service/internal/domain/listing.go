@@ -46,7 +46,7 @@ type Category struct {
 }
 
 type ListingCharacteristics struct {
-	ListingID       string                 `bson:"listing_id"`
+	ListingID       uuid.UUID              `bson:"listing_id"`
 	Characteristics map[string]interface{} `bson:"characteristics"`
 	Tags            []string               `bson:"tags"`
 	UpdatedAt       time.Time              `bson:"updated_at"`
