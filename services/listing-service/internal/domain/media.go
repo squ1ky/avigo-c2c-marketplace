@@ -5,19 +5,19 @@ import (
 	"time"
 )
 
+type ListingMedia struct {
+	ID        uuid.UUID `db:"id"`
+	ListingID uuid.UUID `db:"listing_id"`
+	FileURL   string    `db:"file_url"` // MinIO path
+	FileType  MediaType `db:"file_type"`
+	MimeType  string    `db:"mime_type"` // image/jpeg, image/png
+	Order     int       `db:"order"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
 type MediaType string
 
 const (
-	MediaTypePhoto MediaType = "photo"
+	MediaTypeImage MediaType = "image"
 	MediaTypeVideo MediaType = "video"
 )
-
-type Media struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	ListingID uuid.UUID `json:"listing_id" db:"listing_id"`
-	Type      MediaType `json:"type" db:"type"`
-	ObjectKey string    `json:"object_key" db:"object_key"` // MinIO path
-	Order     int       `json:"order" db:"order"`
-	Size      int64     `json:"size" db:"size"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-}
