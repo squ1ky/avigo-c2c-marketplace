@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -30,6 +32,24 @@ func (r *MediaRepository) Create(ctx context.Context, media *domain.ListingMedia
 	}
 
 	return nil
+}
+
+func (r *MediaRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.ListingMedia, error) {
+	query := `
+		SELECT id, listing_id, file_url, file_type, mime_type, "order", created_at
+    	FROM listing_media
+    	WHERE id = $1
+	`
+
+	var media domain.ListingMedia
+	if err := r.db.GetContext(ctx, &media, query, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("media not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get media: %w", err)
+	}
+
+	return &media, nil
 }
 
 func (r *MediaRepository) GetByListingID(ctx context.Context, listingID uuid.UUID) ([]domain.ListingMedia, error) {

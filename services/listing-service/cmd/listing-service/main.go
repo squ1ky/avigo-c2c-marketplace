@@ -51,7 +51,7 @@ func main() {
 	_ = mongoDB
 
 	log.Println("Initializing MinIO repository...")
-	minioRepo, err := s3.NewMinIORepository(cfg.S3)
+	minioRepo, err := s3.NewMediaStorage(cfg.S3)
 	if err != nil {
 		log.Fatalf("Failed to initialize MinIO: %v", err)
 	}
