@@ -50,6 +50,14 @@ func NewMediaStorage(cfg config.S3Config) (*MediaStorage, error) {
 	}, nil
 }
 
+type UploadRequest struct {
+	ListingID   uuid.UUID
+	Filename    string
+	Data        io.Reader
+	Size        int64
+	ContentType string
+}
+
 type FileInfo struct {
 	ObjectKey    string
 	Size         int64
@@ -59,12 +67,12 @@ type FileInfo struct {
 	Metadata     map[string]string
 }
 
-func (s *MediaStorage) UploadFile(ctx context.Context, listingID uuid.UUID, filename string, data io.Reader, size int64, contentType string) (string, error) {
+func (s *MediaStorage) UploadFile(ctx context.Context, req UploadRequest) (string, error) {
 	// Generate unique path: listings/{listing_id}/{uuid}_{filename}
-	objectKey := fmt.Sprintf("listings/%s/%s_%s", listingID, uuid.New(), filename)
+	objectKey := fmt.Sprintf("listings/%s/%s_%s", req.ListingID, uuid.New(), req.Filename)
 
-	_, err := s.client.PutObject(ctx, s.config.Bucket, objectKey, data, size, minio.PutObjectOptions{
-		ContentType: contentType,
+	_, err := s.client.PutObject(ctx, s.config.Bucket, objectKey, req.Data, req.Size, minio.PutObjectOptions{
+		ContentType: req.ContentType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file: %w", err)
