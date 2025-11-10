@@ -64,7 +64,7 @@ type S3Config struct {
 	SecretAccessKey string   `mapstructure:"secret_access_key"`
 	Endpoint        string   `mapstructure:"endpoint"`
 	UseSSL          bool     `mapstructure:"use_ssl"`
-	MaxFileSize     int      `mapstructure:"max_file_size"`
+	MaxFileSize     int64    `mapstructure:"max_file_size"`
 	AllowedTypes    []string `mapstructure:"allowed_types"`
 	PublicURL       string   `mapstructure:"public_url"`
 }
@@ -129,7 +129,7 @@ func Load() (*Config, error) {
 			SecretAccessKey: viper.GetString("S3_SECRET_ACCESS_KEY"),
 			Endpoint:        viper.GetString("S3_ENDPOINT"),
 			UseSSL:          viper.GetBool("S3_USE_SSL"),
-			MaxFileSize:     viper.GetInt("S3_MAX_FILE_SIZE"),
+			MaxFileSize:     viper.GetInt64("S3_MAX_FILE_SIZE"),
 			AllowedTypes:    viper.GetStringSlice("S3_ALLOWED_TYPES"),
 			PublicURL:       viper.GetString("S3_PUBLIC_URL"),
 		},
