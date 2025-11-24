@@ -279,3 +279,23 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string) (*
 		},
 	}, nil
 }
+
+func (s *AuthService) GetMe(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if user.Profile == nil || user.Security == nil {
+		return nil, domain.ErrUserNotFound
+	}
+
+	return &dto.UserInfo{
+		ID:          user.ID.String(),
+		Username:    user.Username,
+		Email:       user.Security.Email,
+		DisplayName: user.Profile.DisplayName,
+		Role:        string(user.Role),
+		Status:      string(user.Status),
+	}, nil
+}

@@ -145,8 +145,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
-	userID := c.GetHeader("X-User-ID")
-	if userID == "" {
+	userIDHeader := c.GetHeader("X-User-ID")
+	if userIDHeader == "" {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"error": "user not authenticated",
 			"code":  "NOT_AUTHENTICATED",
@@ -154,9 +154,23 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	// TODO: request user data from db
+	userID, err := uuid.Parse(userIDHeader)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "invalid user ID format",
+			"code":  "INVALID_USER_ID",
+		})
+		return
+	}
+
+	userInfo, err := h.authService.GetMe(c.Request.Context(), userID)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"user_id": userID,
+		"user": userInfo,
 	})
 }
 
