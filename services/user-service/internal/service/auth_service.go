@@ -299,3 +299,39 @@ func (s *AuthService) GetMe(ctx context.Context, userID uuid.UUID) (*dto.UserInf
 		Status:      string(user.Status),
 	}, nil
 }
+
+func (s *AuthService) ChangePassword(
+	ctx context.Context,
+	userID uuid.UUID,
+	req dto.ChangePasswordRequest,
+) error {
+	if err := s.validator.Validate(req); err != nil {
+		return err
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.Security.PasswordHash),
+		[]byte(req.CurrentPassword),
+	); err != nil {
+		return domain.ErrInvalidCredentials
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	if err := s.userRepo.UpdatePasswordHash(ctx, userID, string(newHash)); err != nil {
+		return err
+	}
+
+	// invalidate refresh-token for logout on other devices
+	_ = s.userRepo.UpdateRefreshToken(ctx, userID, "")
+
+	return nil
+}

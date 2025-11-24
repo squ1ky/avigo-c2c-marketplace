@@ -28,8 +28,9 @@ func (r *Router) SetupRoutes(engine *gin.Engine) {
 			// gateway already checked JWT
 			auth.POST("/logout", r.authHandler.Logout)
 			auth.POST("/refresh", r.authHandler.RefreshToken)
-
 			auth.GET("/me", r.authHandler.Me)
+
+			auth.POST("/change-password", r.authHandler.ChangePassword)
 		}
 
 		users := v1.Group("/users")

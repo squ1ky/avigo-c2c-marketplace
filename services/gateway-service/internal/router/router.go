@@ -45,6 +45,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 				authProtected.POST("/logout", userProxy)
 				authProtected.POST("/refresh", userProxy)
 				authProtected.GET("/me", userProxy)
+				authProtected.POST("/change-password", userProxy)
 			}
 
 			usersProtected := protected.Group("/users")

@@ -161,6 +161,28 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	})
 }
 
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userID, ok := getUserIDFromHeader(c)
+	if !ok {
+		return
+	}
+
+	var req dto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		InvalidJSON(c, err)
+		return
+	}
+
+	if err := h.authService.ChangePassword(c.Request.Context(), userID, req); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "password changed successfully",
+	})
+}
+
 func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken, refreshToken string) {
 	sameSite := h.parseSameSite()
 

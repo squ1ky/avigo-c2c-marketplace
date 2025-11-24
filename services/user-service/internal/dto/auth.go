@@ -30,3 +30,8 @@ type ConfirmEmailRequest struct {
 	UserID string `json:"user_id" validate:"required,uuid"`
 	Code   string `json:"code" validate:"required,len=6"`
 }
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" validate:"required,password"`
+	NewPassword     string `json:"new_password" validate:"required,password"`
+}
