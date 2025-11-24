@@ -38,6 +38,7 @@ func (s *UserService) GetProfile(ctx context.Context, userID uuid.UUID) (*dto.Pr
 		Country:     p.Country,
 		City:        p.City,
 		AvatarURL:   p.AvatarURL,
+		LastLoginAt: user.Security.LastLoginAt,
 	}, nil
 }
 
