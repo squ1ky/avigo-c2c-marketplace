@@ -145,21 +145,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
-	userIDHeader := c.GetHeader("X-User-ID")
-	if userIDHeader == "" {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"error": "user not authenticated",
-			"code":  "NOT_AUTHENTICATED",
-		})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDHeader)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": "invalid user ID format",
-			"code":  "INVALID_USER_ID",
-		})
+	userID, ok := getUserIDFromHeader(c)
+	if !ok {
 		return
 	}
 
