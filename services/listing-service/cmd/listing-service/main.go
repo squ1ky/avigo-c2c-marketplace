@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
 	"log"
 	"os"
 	"os/signal"
@@ -12,7 +13,6 @@ import (
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/config"
 	mongodb "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/db/mongo"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/db/postgres"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/db/s3"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/kafka"
 )
 
