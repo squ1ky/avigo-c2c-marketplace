@@ -6,11 +6,13 @@ import (
 
 type Router struct {
 	authHandler *AuthHandler
+	userHandler *UserHandler
 }
 
-func NewRouter(authHandler *AuthHandler) *Router {
+func NewRouter(authHandler *AuthHandler, userHandler *UserHandler) *Router {
 	return &Router{
 		authHandler: authHandler,
+		userHandler: userHandler,
 	}
 }
 
@@ -26,6 +28,15 @@ func (r *Router) SetupRoutes(engine *gin.Engine) {
 			// gateway already checked JWT
 			auth.POST("/logout", r.authHandler.Logout)
 			auth.POST("/refresh", r.authHandler.RefreshToken)
+			auth.GET("/me", r.authHandler.Me)
+
+			auth.POST("/change-password", r.authHandler.ChangePassword)
+		}
+
+		users := v1.Group("/users")
+		{
+			users.GET("/me/profile", r.userHandler.GetMyProfile)
+			users.PATCH("/me/profile", r.userHandler.UpdateMyProfile)
 		}
 	}
 }

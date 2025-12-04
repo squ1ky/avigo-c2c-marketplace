@@ -31,11 +31,7 @@ type ConfirmEmailRequest struct {
 	Code   string `json:"code" validate:"required,len=6"`
 }
 
-type UserInfo struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	DisplayName string `json:"display_name"`
-	Role        string `json:"role"`
-	Status      string `json:"status"`
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" validate:"required,password"`
+	NewPassword     string `json:"new_password" validate:"required,password"`
 }

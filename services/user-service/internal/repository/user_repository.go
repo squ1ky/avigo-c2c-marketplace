@@ -27,6 +27,8 @@ type UserReader interface {
 
 type UserWriter interface {
 	Create(ctx context.Context, user *domain.User) error
+	UpdateProfileFields(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error
+	UpdatePasswordHash(ctx context.Context, userID uuid.UUID, passwordHash string) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.Status) error
 }
 
@@ -85,6 +87,42 @@ func (r *userRepository) GetByEmailOrUsername(ctx context.Context, identifier st
 	}
 
 	return &user, nil
+}
+
+func (r *userRepository) UpdateProfileFields(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+
+	result := r.db.WithContext(ctx).
+		Model(&domain.UserProfile{}).
+		Where("user_id = ?", userID).
+		Updates(updates)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *userRepository) UpdatePasswordHash(ctx context.Context, userID uuid.UUID, passwordHash string) error {
+	result := r.db.WithContext(ctx).
+		Model(&domain.UserSecurity{}).
+		Where("user_id = ?", userID).
+		Update("password_hash", passwordHash)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
 }
 
 func (r *userRepository) UpdateStatus(ctx context.Context, userID uuid.UUID, status domain.Status) error {

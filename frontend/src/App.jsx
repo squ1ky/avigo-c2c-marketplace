@@ -9,6 +9,9 @@ import EmailConfirmPage from './pages/EmailConfirmPage'
 
 import './styles/header.css'
 import './styles/footer.css'
+import AccountPage from "./pages/AccountPage.jsx";
+import EditProfilePage from "./pages/EditProfilePage.jsx";
+import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 
 function App() {
     return (
@@ -20,6 +23,9 @@ function App() {
                     <Route path="/auth/login" element={<Layout><LoginPage /></Layout>} />
                     <Route path="/auth/register" element={<Layout><RegisterPage /></Layout>} />
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />
+                    <Route path="/account" element={<Layout><AccountPage /></Layout>}></Route>
+                    <Route path="/account/edit" element={<Layout><EditProfilePage /></Layout>}></Route>
+                    <Route path="/account/change-password" element={<Layout><ChangePasswordPage /></Layout>}></Route>
                 </Routes>
             </AuthProvider>
         </Router>

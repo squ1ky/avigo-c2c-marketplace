@@ -38,12 +38,20 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		protected := v1.Group("")
 		protected.Use(middleware.JWTMiddleware(cfg.JWT.Secret))
 		{
+			userProxy := proxy.ReverseProxy(cfg.Services.UserServiceURL)
+
 			authProtected := protected.Group("/auth")
 			{
-				userProxy := proxy.ReverseProxy(cfg.Services.UserServiceURL)
 				authProtected.POST("/logout", userProxy)
 				authProtected.POST("/refresh", userProxy)
 				authProtected.GET("/me", userProxy)
+				authProtected.POST("/change-password", userProxy)
+			}
+
+			usersProtected := protected.Group("/users")
+			{
+				usersProtected.GET("/me/profile", userProxy)
+				usersProtected.PATCH("/me/profile", userProxy)
 			}
 		}
 	}
