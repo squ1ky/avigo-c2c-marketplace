@@ -1,4 +1,4 @@
-package postgres
+package pgrepo
 
 import (
 	"context"
@@ -18,6 +18,13 @@ func NewMediaRepository(db *sqlx.DB) *MediaRepository {
 	return &MediaRepository{db: db}
 }
 
+func (r *MediaRepository) getQueryer(ctx context.Context) SQLQueryer {
+	if tx := injectTx(ctx); tx != nil {
+		return tx
+	}
+	return r.db
+}
+
 func (r *MediaRepository) Create(ctx context.Context, media *domain.ListingMedia) error {
 	query := `
 		INSERT INTO listing_media (id, listing_id, file_url, file_type, mime_type, "order", created_at)
@@ -26,7 +33,7 @@ func (r *MediaRepository) Create(ctx context.Context, media *domain.ListingMedia
 
 	media.ID = uuid.New()
 
-	_, err := r.db.NamedExecContext(ctx, query, media)
+	_, err := r.getQueryer(ctx).NamedExecContext(ctx, query, media)
 	if err != nil {
 		return fmt.Errorf("failed to create listing media: %w", err)
 	}
@@ -71,7 +78,7 @@ func (r *MediaRepository) GetByListingID(ctx context.Context, listingID uuid.UUI
 func (r *MediaRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM listing_media WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete listing media: %w", err)
 	}
@@ -82,7 +89,7 @@ func (r *MediaRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *MediaRepository) DeleteAllByListingID(ctx context.Context, listingID uuid.UUID) error {
 	query := `DELETE FROM listing_media WHERE listing_id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, listingID)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, listingID)
 	if err != nil {
 		return fmt.Errorf("failed to delete listing media: %w", err)
 	}

@@ -1,4 +1,4 @@
-package postgres
+package pgrepo
 
 import (
 	"context"
@@ -19,6 +19,13 @@ func NewOrderRepository(db *sqlx.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
+func (r *OrderRepository) getQueryer(ctx context.Context) SQLQueryer {
+	if tx := injectTx(ctx); tx != nil {
+		return tx
+	}
+	return r.db
+}
+
 func (r *OrderRepository) Create(ctx context.Context, order *domain.Order) error {
 	query := `
         INSERT INTO orders (id, listing_id, buyer_id, seller_id, status, cancel_reason, created_at, updated_at)
@@ -29,7 +36,7 @@ func (r *OrderRepository) Create(ctx context.Context, order *domain.Order) error
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
 
-	_, err := r.db.NamedExecContext(ctx, query, order)
+	_, err := r.getQueryer(ctx).NamedExecContext(ctx, query, order)
 	if err != nil {
 		return fmt.Errorf("failed to create order: %w", err)
 	}
@@ -61,7 +68,7 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status
         WHERE id = $3
     `
 
-	_, err := r.db.ExecContext(ctx, query, status, cancelReason, id)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, status, cancelReason, id)
 	if err != nil {
 		return fmt.Errorf("failed to update order status: %w", err)
 	}
@@ -97,6 +104,6 @@ func (r *OrderRepository) GetSalesByUserID(ctx context.Context, userID uuid.UUID
 	if err := r.db.SelectContext(ctx, &orders, query, userID); err != nil {
 		return nil, fmt.Errorf("failed to get sales: %w", err)
 	}
-	
+
 	return orders, nil
 }

@@ -1,4 +1,4 @@
-package postgres
+package pgrepo
 
 import (
 	"context"
@@ -19,6 +19,13 @@ func NewListingRepository(db *sqlx.DB) *ListingRepository {
 	return &ListingRepository{db: db}
 }
 
+func (r *ListingRepository) getQueryer(ctx context.Context) SQLQueryer {
+	if tx := injectTx(ctx); tx != nil {
+		return tx
+	}
+	return r.db
+}
+
 func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
 	query := `
 		INSERT INTO listings (id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at)
@@ -32,7 +39,7 @@ func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing)
 	listing.IsSold = false
 	listing.Status = domain.ListingStatusActive
 
-	_, err := r.db.ExecContext(ctx, query, listing)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, listing)
 	if err != nil {
 		return fmt.Errorf("failed to create listing: %w", err)
 	}
@@ -74,7 +81,7 @@ func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing)
 
 	listing.UpdatedAt = time.Now()
 
-	result, err := r.db.NamedExecContext(ctx, query, listing)
+	result, err := r.getQueryer(ctx).NamedExecContext(ctx, query, listing)
 	if err != nil {
 		return fmt.Errorf("failed to update listing: %w", err)
 	}
@@ -94,7 +101,7 @@ func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing)
 func (r *ListingRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM listings WHERE id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.getQueryer(ctx).ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete listing: %w", err)
 	}
@@ -131,7 +138,7 @@ func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, l
 func (r *ListingRepository) IncrementViews(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE listings SET views_count = views_count + 1 WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to increment views: %w", err)
 	}
@@ -163,7 +170,7 @@ func (r *ListingRepository) MarkAsSold(ctx context.Context, id uuid.UUID) error 
 		WHERE id = $1
 	`
 
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to mark listing as sold: %w", err)
 	}

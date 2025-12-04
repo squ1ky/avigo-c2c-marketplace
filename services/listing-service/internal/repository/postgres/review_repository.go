@@ -1,4 +1,4 @@
-package postgres
+package pgrepo
 
 import (
 	"context"
@@ -18,6 +18,13 @@ func NewReviewRepository(db *sqlx.DB) *ReviewRepository {
 	return &ReviewRepository{db: db}
 }
 
+func (r *ReviewRepository) getQueryer(ctx context.Context) SQLQueryer {
+	if tx := injectTx(ctx); tx != nil {
+		return tx
+	}
+	return r.db
+}
+
 func (r *ReviewRepository) Create(ctx context.Context, review *domain.Review) error {
 	query := `
         INSERT INTO reviews (id, order_id, reviewer_id, reviewed_user_id, rating, text, created_at, updated_at)
@@ -28,7 +35,7 @@ func (r *ReviewRepository) Create(ctx context.Context, review *domain.Review) er
 	review.CreatedAt = time.Now()
 	review.UpdatedAt = time.Now()
 
-	_, err := r.db.NamedExecContext(ctx, query, review)
+	_, err := r.getQueryer(ctx).NamedExecContext(ctx, query, review)
 	if err != nil {
 		return fmt.Errorf("failed to create review: %w", err)
 	}
