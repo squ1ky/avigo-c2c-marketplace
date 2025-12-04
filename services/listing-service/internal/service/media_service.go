@@ -1,13 +1,13 @@
-package usecase
+package service
 
 import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/config"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/db/postgres"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/db/s3"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
+	pgrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
 	"mime/multipart"
 	"slices"
 	"strings"
@@ -16,11 +16,11 @@ import (
 
 type MediaService struct {
 	storage    *s3.MediaStorage
-	repository *postgres.MediaRepository
+	repository *pgrepo.MediaRepository
 	config     config.S3Config
 }
 
-func NewMediaService(storage *s3.MediaStorage, repo *postgres.MediaRepository, cfg config.S3Config) *MediaService {
+func NewMediaService(storage *s3.MediaStorage, repo *pgrepo.MediaRepository, cfg config.S3Config) *MediaService {
 	return &MediaService{
 		storage:    storage,
 		repository: repo,

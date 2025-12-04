@@ -2,6 +2,7 @@ package domain
 
 import (
 	"github.com/google/uuid"
+	"strings"
 	"time"
 )
 
@@ -21,3 +22,10 @@ const (
 	MediaTypeImage MediaType = "image"
 	MediaTypeVideo MediaType = "video"
 )
+
+func DetectMediaType(mimeType string) MediaType {
+	if strings.HasPrefix(mimeType, "video") {
+		return MediaTypeVideo
+	}
+	return MediaTypeImage
+}
