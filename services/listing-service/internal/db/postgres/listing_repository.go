@@ -21,14 +21,15 @@ func NewListingRepository(db *sqlx.DB) *ListingRepository {
 
 func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
 	query := `
-		INSERT INTO listings (id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at)
-		VALUES (:id, :user_id, :category_id, :title, :description, :price, :currency, :status, :views_count, :created_at, :updated_at)
+		INSERT INTO listings (id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at)
+		VALUES (:id, :user_id, :category_id, :title, :description, :price, :currency, :status, :views_count, :is_sold, :created_at, :updated_at)
 	`
 
 	listing.ID = uuid.New()
 	listing.CreatedAt = time.Now()
 	listing.UpdatedAt = time.Now()
 	listing.ViewsCount = 0
+	listing.IsSold = false
 	listing.Status = domain.ListingStatusActive
 
 	_, err := r.db.ExecContext(ctx, query, listing)
@@ -41,7 +42,7 @@ func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing)
 
 func (r *ListingRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	query := `
-		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at
+		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at
 		FROM listings
 		WHERE id = $1
 	`
@@ -112,7 +113,7 @@ func (r *ListingRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.Listing, error) {
 	query := `
-		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at
+		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at
 		FROM listings
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -140,7 +141,7 @@ func (r *ListingRepository) IncrementViews(ctx context.Context, id uuid.UUID) er
 
 func (r *ListingRepository) GetByCategoryID(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]domain.Listing, error) {
 	query := `
-		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, created_at, updated_at
+		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at
 		FROM listings
 		WHERE category_id = $1 AND status = 'active'
 		ORDER BY created_at DESC
@@ -153,4 +154,19 @@ func (r *ListingRepository) GetByCategoryID(ctx context.Context, categoryID uuid
 	}
 
 	return listings, nil
+}
+
+func (r *ListingRepository) MarkAsSold(ctx context.Context, id uuid.UUID) error {
+	query := `
+		UPDATE listings
+		SET is_sold = true, status = 'inactive', updated_at = NOW()
+		WHERE id = $1
+	`
+
+	_, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to mark listing as sold: %w", err)
+	}
+
+	return nil
 }
