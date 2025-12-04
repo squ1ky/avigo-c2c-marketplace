@@ -1,0 +1,83 @@
+package mapper
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/dto"
+)
+
+func ToDomainListing(input dto.CreateListingInput, id uuid.UUID, now time.Time) *domain.Listing {
+	return &domain.Listing{
+		ID:          id,
+		UserID:      input.UserID,
+		CategoryID:  input.CategoryID,
+		Title:       input.Title,
+		Description: input.Description,
+		Price:       input.Price,
+		Currency:    input.Currency,
+		Status:      domain.ListingStatusActive,
+		IsSold:      false,
+		ViewsCount:  0,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+}
+
+func ToDomainCharacteristics(input dto.CreateListingInput, id uuid.UUID, now time.Time) *domain.ListingCharacteristics {
+	chars := input.Characteristics
+	if chars == nil {
+		chars = make(map[string]interface{})
+	}
+	tags := input.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
+	return &domain.ListingCharacteristics{
+		ListingID:       id,
+		Characteristics: chars,
+		Tags:            tags,
+		UpdatedAt:       now,
+	}
+}
+
+func ToListingResponse(
+	listing *domain.Listing,
+	chars *domain.ListingCharacteristics,
+	media []domain.ListingMedia,
+) *dto.ListingResponse {
+	resp := &dto.ListingResponse{
+		ID:              listing.ID,
+		UserID:          listing.UserID,
+		CategoryID:      listing.CategoryID,
+		Title:           listing.Title,
+		Description:     listing.Description,
+		Price:           listing.Price,
+		Currency:        listing.Currency,
+		Status:          listing.Status,
+		ViewsCount:      listing.ViewsCount,
+		IsSold:          listing.IsSold,
+		CreatedAt:       listing.CreatedAt,
+		UpdatedAt:       listing.UpdatedAt,
+		Media:           media,
+		Characteristics: make(map[string]interface{}),
+		Tags:            make([]string, 0),
+	}
+
+	if chars != nil {
+		if chars.Characteristics != nil {
+			resp.Characteristics = chars.Characteristics
+		}
+		if chars.Tags != nil {
+			resp.Tags = chars.Tags
+		}
+	}
+
+	if resp.Media == nil {
+		resp.Media = []domain.ListingMedia{}
+	}
+
+	return resp
+}
