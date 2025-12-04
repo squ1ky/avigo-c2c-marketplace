@@ -15,8 +15,10 @@ type Listing struct {
 	Currency    Currency      `db:"currency"`
 	Status      ListingStatus `db:"status"`
 	ViewsCount  int64         `db:"views_count"`
-	CreatedAt   time.Time     `db:"created_at"`
-	UpdatedAt   time.Time     `db:"updated_at"`
+	IsSold      bool          `db:"is_sold"`
+
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 }
 
 type ListingStatus string
