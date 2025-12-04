@@ -20,7 +20,7 @@ WORKDIR /app
 
 COPY --from=builder /app/listing-service .
 
-COPY --from=builder /app/internal/migrations ./migrations
+COPY --from=builder /app/internal/db/postgres/migrations ./migrations
 
 COPY .env* ./
 
