@@ -59,13 +59,15 @@ func main() {
 		kafkaProducer,
 		cfg.Auth.ConfirmationCodeExpiry,
 	)
+	userService := service.NewUserService(userRepo, validator)
 
 	authHandler := handler.NewAuthHandler(authService, cfg.Cookie, cfg.JWT)
+	userHandler := handler.NewUserHandler(userService)
 
 	// HTTP (Gin)
 	engine := gin.Default()
 	engine.Use(middleware.ErrorHandler())
-	router := handler.NewRouter(authHandler)
+	router := handler.NewRouter(authHandler, userHandler)
 	router.SetupRoutes(engine)
 
 	// gRPC

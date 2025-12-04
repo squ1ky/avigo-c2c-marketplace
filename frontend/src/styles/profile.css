@@ -1,0 +1,186 @@
+.profile-card-wide {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 1000px;
+    position: relative;
+}
+
+.profile-card-wide::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--go-cyan) 0%, #00A29C 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+.profile-main {
+    display: flex;
+    gap: 2.5rem;
+    align-items: flex-start;
+}
+
+/* Левая колонка */
+
+.profile-avatar-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 260px;
+    gap: 1.5rem;
+}
+
+.profile-avatar-wrapper {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(0, 173, 216, 0.3);
+    background-color: var(--gray-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-placeholder {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--white);
+    background: linear-gradient(135deg, #00A29C 0%, #00ADD8 50%, #00C7D9 100%);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-basic-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.profile-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.profile-location {
+    color: var(--gray-medium);
+    font-size: 0.95rem;
+}
+
+.profile-last-login {
+    font-size: 0.9rem;
+    color: var(--gray-medium);
+}
+
+.profile-actions-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.profile-btn {
+    width: 100%;
+}
+
+/* Правая колонка */
+
+.profile-details-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.profile-section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.profile-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 2rem;
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.profile-field-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--gray-medium);
+}
+
+.profile-field-value {
+    font-size: 0.98rem;
+    color: var(--black);
+}
+
+/* Горизонтальные кнопки под деталями */
+
+.profile-actions-horizontal {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Адаптив */
+
+@media (max-width: 900px) {
+    .profile-main {
+        flex-direction: column;
+    }
+
+    .profile-avatar-column {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .profile-basic-info {
+        margin-left: 1.5rem;
+    }
+
+    .profile-actions-vertical {
+        display: none;
+    }
+
+    .profile-card-wide {
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .profile-fields-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-actions-horizontal {
+        flex-direction: column;
+    }
+
+    .profile-btn {
+        width: 100%;
+    }
+}

@@ -58,3 +58,28 @@ export const logout = async () => {
     const response = await api.post('/auth/logout');
     return response.data;
 };
+
+// === User ===
+
+export const getCurrentUser = async () => {
+    const response = await api.get('/auth/me');
+    return response.data.user;
+};
+
+export const getProfile = async () => {
+    const response = await api.get('/users/me/profile');
+    return response.data.profile;
+};
+
+export const updateProfile = async (data) => {
+    const response = await api.patch('/users/me/profile', data);
+    return response.data.profile;
+};
+
+export const changePassword = async (currentPassword, newPassword) => {
+    const response = await api.post('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+    });
+    return response.data;
+};
