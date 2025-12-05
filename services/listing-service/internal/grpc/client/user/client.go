@@ -40,6 +40,32 @@ func (c *Client) GetUserByID(ctx context.Context, userID string) (*userpb.User, 
 	return resp.User, nil
 }
 
+func (c *Client) GetUsersByID(ctx context.Context, userIDs []string) (map[string]*userpb.User, error) {
+	uniqueMap := make(map[string]struct{})
+	var uniqueIDs []string
+
+	for _, id := range userIDs {
+		if _, ok := uniqueMap[id]; !ok {
+			uniqueMap[id] = struct{}{}
+			uniqueIDs = append(uniqueIDs, id)
+		}
+	}
+
+	resp, err := c.api.GetUsersByIDs(ctx, &userpb.GetUsersByIDsRequest{
+		UserIds: uniqueIDs,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users by ids: %w", err)
+	}
+
+	result := make(map[string]*userpb.User, len(resp.Users))
+	for _, u := range resp.Users {
+		result[u.Id] = u
+	}
+
+	return result, nil
+}
+
 func (c *Client) ValidateUser(ctx context.Context, userID string) (bool, error) {
 	resp, err := c.api.ValidateUser(ctx, &userpb.ValidateUserRequest{
 		UserId: userID,

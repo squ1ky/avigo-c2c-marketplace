@@ -177,3 +177,22 @@ func (r *ListingRepository) MarkAsSold(ctx context.Context, id uuid.UUID) error 
 
 	return nil
 }
+
+func (r *ListingRepository) MarkAsActive(ctx context.Context, id uuid.UUID) error {
+	query := `
+		UPDATE listings
+		SET is_sold = false, status = 'active', updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.getQueryer(ctx).ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to mark listing as active: %w", err)
+	}
+
+	if _, err := result.RowsAffected(); err != nil {
+		return nil
+	}
+
+	return nil
+}
