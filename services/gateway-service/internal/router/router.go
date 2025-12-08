@@ -26,12 +26,20 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 
 	v1 := router.Group("/api/v1")
 	{
+		listingProxy := proxy.ReverseProxy(cfg.Services.ListingServiceURL)
+
 		auth := v1.Group("/auth")
 		{
 			userProxy := proxy.ReverseProxy(cfg.Services.UserServiceURL)
 			auth.POST("/register", userProxy)
 			auth.POST("/login", userProxy)
 			auth.POST("/confirm-email", userProxy)
+		}
+
+		listingsPublic := v1.Group("/listings")
+		{
+			listingsPublic.GET("/search", listingProxy)
+			listingsPublic.GET("/:id", listingProxy)
 		}
 
 		// JWT require
@@ -52,6 +60,13 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			{
 				usersProtected.GET("/me/profile", userProxy)
 				usersProtected.PATCH("/me/profile", userProxy)
+			}
+
+			listingsProtected := protected.Group("/listings")
+			{
+				listingsProtected.POST("", listingProxy)
+				listingsProtected.PUT("/:id", listingProxy)
+				listingsProtected.DELETE("/:id", listingProxy)
 			}
 		}
 	}

@@ -32,12 +32,18 @@ func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing)
 		VALUES (:id, :user_id, :category_id, :title, :description, :price, :currency, :status, :views_count, :is_sold, :created_at, :updated_at)
 	`
 
-	listing.ID = uuid.New()
-	listing.CreatedAt = time.Now()
-	listing.UpdatedAt = time.Now()
-	listing.ViewsCount = 0
-	listing.IsSold = false
-	listing.Status = domain.ListingStatusActive
+	if listing.ID == uuid.Nil {
+		listing.ID = uuid.New()
+	}
+	if listing.CreatedAt.IsZero() {
+		listing.CreatedAt = time.Now()
+	}
+	if listing.UpdatedAt.IsZero() {
+		listing.UpdatedAt = listing.CreatedAt
+	}
+	if listing.Status == "" {
+		listing.Status = domain.ListingStatusActive
+	}
 
 	_, err := r.getQueryer(ctx).ExecContext(ctx, query, listing)
 	if err != nil {

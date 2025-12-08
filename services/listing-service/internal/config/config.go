@@ -10,12 +10,13 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig   `mapstructure:"server"`
-	UserService UserService    `mapstructure:"user_service"`
-	Postgres    PostgresConfig `mapstructure:"postgres"`
-	MongoDB     MongoConfig    `mapstructure:"mongodb"`
-	S3          S3Config       `mapstructure:"s3"`
-	Kafka       KafkaConfig    `mapstructure:"kafka"`
+	Server        ServerConfig        `mapstructure:"server"`
+	UserService   UserService         `mapstructure:"user_service"`
+	Postgres      PostgresConfig      `mapstructure:"postgres"`
+	MongoDB       MongoConfig         `mapstructure:"mongodb"`
+	S3            S3Config            `mapstructure:"s3"`
+	Kafka         KafkaConfig         `mapstructure:"kafka"`
+	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch"`
 }
 
 type ServerConfig struct {
@@ -84,6 +85,13 @@ type KafkaConfig struct {
 	RetryMax            int           `mapstructure:"retry_max"`
 }
 
+type ElasticsearchConfig struct {
+	Addresses []string `mapstructure:"addresses"`
+	Username  string   `mapstructure:"username"`
+	Password  string   `mapstructure:"password"`
+	Index     string   `mapstructure:"index"`
+}
+
 func Load() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
@@ -150,6 +158,12 @@ func Load() (*Config, error) {
 			WriteTimeout:        viper.GetDuration("KAFKA_WRITE_TIMEOUT"),
 			RetryMax:            viper.GetInt("KAFKA_RETRY_MAX"),
 		},
+		ElasticsearchConfig{
+			Addresses: viper.GetStringSlice("ELASTICSEARCH_ADDRESSES"),
+			Username:  viper.GetString("ELASTICSEARCH_USERNAME"),
+			Password:  viper.GetString("ELASTICSEARCH_PASSWORD"),
+			Index:     viper.GetString("ELASTICSEARCH_INDEX"),
+		},
 	}
 
 	if err := validateConfig(cfg); err != nil {
@@ -198,6 +212,9 @@ func setDefaults() {
 	viper.SetDefault("KAFKA_COMPRESSION", "snappy")
 	viper.SetDefault("KAFKA_WRITE_TIMEOUT", 10*time.Second)
 	viper.SetDefault("KAFKA_RETRY_MAX", 3)
+
+	viper.SetDefault("ELASTICSEARCH_ADDRESSES", []string{"http://elasticsearch:9200"})
+	viper.SetDefault("ELASTICSEARCH_INDEX", "listings")
 }
 
 func validateConfig(cfg *Config) error {
@@ -219,6 +236,13 @@ func validateConfig(cfg *Config) error {
 
 	if cfg.Kafka.TopicListingsEvents == "" {
 		return errors.New("KAFKA_TOPIC_LISTINGS_EVENTS is required")
+	}
+
+	if len(cfg.Elasticsearch.Addresses) == 0 {
+		return errors.New("ELASTICSEARCH_ADDRESSES is required")
+	}
+	if cfg.Elasticsearch.Index == "" {
+		return errors.New("ELASTICSEARCH_INDEX is required")
 	}
 
 	return nil

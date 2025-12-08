@@ -48,3 +48,19 @@ type ListingResponse struct {
 	Tags            []string               `json:"tags"`
 	Media           []domain.ListingMedia  `json:"media"`
 }
+
+type SearchListingsInput struct {
+	Query      string     `json:"query"`
+	CategoryID *uuid.UUID `json:"category_id,omitempty"`
+	Page       int        `json:"page"`
+	Limit      int        `json:"limit"`
+	MinPrice   *float64   `json:"min_price,omitempty"`
+	MaxPrice   *float64   `json:"max_price,omitempty"`
+}
+
+type SearchListingsResponse struct {
+	Total int64             `json:"total"`
+	Page  int               `json:"page"`
+	Limit int               `json:"limit"`
+	Items []ListingResponse `json:"items"`
+}

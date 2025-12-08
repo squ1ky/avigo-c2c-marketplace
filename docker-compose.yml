@@ -133,6 +133,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     env_file:
       - ./services/listing-service/.env
     ports:
@@ -197,6 +199,24 @@ services:
       retries: 10
       start_period: 40s
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
@@ -233,3 +253,4 @@ volumes:
   zookeeper-data:
   zookeeper-logs:
   kafka-data:
+  es-data:

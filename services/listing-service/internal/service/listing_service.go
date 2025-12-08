@@ -3,15 +3,18 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/google/uuid"
+	mngrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
+	pgrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/search"
+
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/dto"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/mapper"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
-	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
-	"log/slog"
-	"time"
 )
 
 type ListingService struct {
@@ -19,6 +22,7 @@ type ListingService struct {
 	mediaRepo   *pgrepo.MediaRepository
 	charsRepo   *mngrepo.CharacteristicsRepository
 	storage     *s3.MediaStorage
+	search      *search.Client
 	txManager   pgrepo.TransactionManager
 }
 
@@ -27,6 +31,7 @@ func NewListingService(
 	mediaRepo *pgrepo.MediaRepository,
 	charsRepo *mngrepo.CharacteristicsRepository,
 	storage *s3.MediaStorage,
+	search *search.Client,
 	txManager pgrepo.TransactionManager,
 ) *ListingService {
 	return &ListingService{
@@ -34,6 +39,7 @@ func NewListingService(
 		mediaRepo:   mediaRepo,
 		charsRepo:   charsRepo,
 		storage:     storage,
+		search:      search,
 		txManager:   txManager,
 	}
 }
@@ -99,6 +105,8 @@ func (s *ListingService) Create(ctx context.Context, input dto.CreateListingInpu
 		_ = s.listingRepo.Delete(ctx, listingID)
 		return nil, fmt.Errorf("failed to create listing (mongo): %w", err)
 	}
+
+	s.enqueueIndexing(ctx, listing, chars)
 
 	return mapper.ToListingResponse(listing, chars, nil), nil
 }
@@ -235,6 +243,9 @@ func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInpu
 		go s.storage.DeleteFiles(context.Background(), keysToDelete)
 	}
 
+	chars, _ := s.charsRepo.GetByListingID(ctx, existing.ID)
+	s.enqueueIndexing(ctx, existing, chars)
+
 	return mapper.ToListingResponse(existing, nil, finalMediaList), nil
 }
 
@@ -280,5 +291,103 @@ func (s *ListingService) Delete(ctx context.Context, id uuid.UUID, userID uuid.U
 		}()
 	}
 
+	s.enqueueDeletion(ctx, id)
+
 	return nil
+}
+
+func (s *ListingService) Search(ctx context.Context, input dto.SearchListingsInput) (*dto.SearchListingsResponse, error) {
+	if s.search == nil {
+		return nil, fmt.Errorf("search client is not configured")
+	}
+
+	page := input.Page
+	if page <= 0 {
+		page = 1
+	}
+	limit := input.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	params := search.ListingSearchParams{
+		Query:      input.Query,
+		From:       (page - 1) * limit,
+		Size:       limit,
+		CategoryID: input.CategoryID,
+		MinPrice:   input.MinPrice,
+		MaxPrice:   input.MaxPrice,
+	}
+
+	result, err := s.search.SearchListings(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]dto.ListingResponse, 0, len(result.IDs))
+	for _, id := range result.IDs {
+		listing, err := s.listingRepo.GetByID(ctx, id)
+		if err != nil {
+			slog.Warn("failed to load listing from DB after search hit", "id", id, "error", err)
+			continue
+		}
+
+		media, _ := s.mediaRepo.GetByListingID(ctx, id)
+		chars, _ := s.charsRepo.GetByListingID(ctx, id)
+
+		if resp := mapper.ToListingResponse(listing, chars, media); resp != nil {
+			items = append(items, *resp)
+		}
+	}
+
+	return &dto.SearchListingsResponse{
+		Total: result.Total,
+		Page:  page,
+		Limit: limit,
+		Items: items,
+	}, nil
+}
+
+func (s *ListingService) enqueueIndexing(ctx context.Context, listing *domain.Listing, chars *domain.ListingCharacteristics) {
+	if s.search == nil || listing == nil {
+		return
+	}
+
+	doc := search.ListingDocument{
+		ID:          listing.ID,
+		UserID:      listing.UserID,
+		CategoryID:  listing.CategoryID,
+		Title:       listing.Title,
+		Description: listing.Description,
+		Price:       listing.Price,
+		Currency:    string(listing.Currency),
+		Status:      string(listing.Status),
+		IsSold:      listing.IsSold,
+		CreatedAt:   listing.CreatedAt.Format(time.RFC3339),
+	}
+
+	if chars != nil && len(chars.Tags) > 0 {
+		doc.Tags = chars.Tags
+	}
+
+	go func() {
+		if err := s.search.IndexListing(context.Background(), doc); err != nil {
+			slog.Warn("failed to index listing", "id", listing.ID, "error", err)
+		}
+	}()
+}
+
+func (s *ListingService) enqueueDeletion(ctx context.Context, id uuid.UUID) {
+	if s.search == nil {
+		return
+	}
+
+	go func() {
+		if err := s.search.DeleteListing(context.Background(), id); err != nil {
+			slog.Warn("failed to delete listing from index", "id", id, "error", err)
+		}
+	}()
 }

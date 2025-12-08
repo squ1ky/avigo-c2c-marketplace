@@ -10,6 +10,7 @@ import (
 	mngrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
 	pgrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/search"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/service"
 	"log"
 	"net/http"
@@ -70,6 +71,13 @@ func main() {
 	}
 	log.Printf("Kafka producer initialized (topic: %s)", cfg.Kafka.TopicListingsEvents)
 
+	log.Printf("Connecting to Elasticsearch at %v ...", cfg.Elasticsearch.Addresses)
+	searchClient, err := search.NewClient(cfg.Elasticsearch)
+	if err != nil {
+		log.Fatalf("Failed to initialize Elasticsearch client: %v", err)
+	}
+	log.Println("Elasticsearch client initialized")
+
 	// gRPC (to user-service)
 	log.Printf("Connecting to User Service gRPC at %s...", cfg.UserService.Address)
 	userClient, err := user.NewClient(cfg.UserService.Address)
@@ -92,6 +100,7 @@ func main() {
 		mediaRepo,
 		charsRepo,
 		minioRepo,
+		searchClient,
 		txManager,
 	)
 	orderSvc := service.NewOrderService(orderRepo, listingRepo, txManager, userClient)
