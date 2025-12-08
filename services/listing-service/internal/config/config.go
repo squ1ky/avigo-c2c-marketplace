@@ -10,16 +10,21 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Postgres PostgresConfig `mapstructure:"postgres"`
-	MongoDB  MongoConfig    `mapstructure:"mongodb"`
-	S3       S3Config       `mapstructure:"s3"`
-	Kafka    KafkaConfig    `mapstructure:"kafka"`
+	Server      ServerConfig   `mapstructure:"server"`
+	UserService UserService    `mapstructure:"user_service"`
+	Postgres    PostgresConfig `mapstructure:"postgres"`
+	MongoDB     MongoConfig    `mapstructure:"mongodb"`
+	S3          S3Config       `mapstructure:"s3"`
+	Kafka       KafkaConfig    `mapstructure:"kafka"`
 }
 
 type ServerConfig struct {
 	Address  string `mapstructure:"address"`
 	LogLevel string `mapstructure:"log_level"`
+}
+
+type UserService struct {
+	Address string `mapstructure:"user_service_address"`
 }
 
 type PostgresConfig struct {
@@ -99,6 +104,9 @@ func Load() (*Config, error) {
 			Address:  viper.GetString("SERVER_ADDRESS"),
 			LogLevel: viper.GetString("LOG_LEVEL"),
 		},
+		UserService{
+			Address: viper.GetString("USER_SERVICE_ADDRESS"),
+		},
 		PostgresConfig{
 			Host:            viper.GetString("SERVER_ADDRESS"),
 			Port:            viper.GetInt("POSTGRES_PORT"),
@@ -155,6 +163,8 @@ func setDefaults() {
 
 	viper.SetDefault("SERVER_ADDRESS", ":8082")
 	viper.SetDefault("LOG_LEVEL", "info")
+
+	viper.SetDefault("USER_SERVICE_ADDRESS", "user-service:50051")
 
 	viper.SetDefault("SERVER_ADDRESS", "localhost")
 	viper.SetDefault("POSTGRES_PORT", 5432)

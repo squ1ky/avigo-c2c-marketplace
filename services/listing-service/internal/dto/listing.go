@@ -3,20 +3,32 @@ package dto
 import (
 	"github.com/google/uuid"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
-	"io"
 	"time"
 )
 
 type CreateListingInput struct {
-	UserID          uuid.UUID
-	CategoryID      uuid.UUID
-	Title           string
-	Description     string
-	Price           float64
-	Currency        domain.Currency
-	Files           []FileInput
-	Characteristics map[string]interface{}
-	Tags            []string
+	UserID          uuid.UUID              `json:"-"`
+	CategoryID      uuid.UUID              `json:"category_id" binding:"required"`
+	Title           string                 `json:"title" binding:"required,min=5,max=100"`
+	Description     string                 `json:"description" binding:"required,min=10,max=2000"`
+	Price           float64                `json:"price" binding:"required,min=0"`
+	Currency        domain.Currency        `json:"currency" binding:"required,oneof=RUB USD EUR"`
+	MediaIDs        []uuid.UUID            `json:"media_ids" binding:"omitempty,dive,uuid"`
+	Characteristics map[string]interface{} `json:"characteristics"`
+	Tags            []string               `json:"tags"`
+}
+
+type UpdateListingInput struct {
+	UserID          uuid.UUID              `json:"-"`
+	ID              uuid.UUID              `json:"-"`
+	CategoryID      uuid.UUID              `json:"category_id" binding:"required"`
+	Title           string                 `json:"title" binding:"required,min=5,max=100"`
+	Description     string                 `json:"description" binding:"required,min=10,max=2000"`
+	Price           float64                `json:"price" binding:"required,min=0"`
+	Currency        domain.Currency        `json:"currency" binding:"required,oneof=RUB USD EUR"`
+	MediaIDs        []uuid.UUID            `json:"media_ids" binding:"omitempty,dive,uuid"`
+	Characteristics map[string]interface{} `json:"characteristics"`
+	Tags            []string               `json:"tags"`
 }
 
 type ListingResponse struct {
@@ -35,11 +47,4 @@ type ListingResponse struct {
 	Characteristics map[string]interface{} `json:"characteristics"`
 	Tags            []string               `json:"tags"`
 	Media           []domain.ListingMedia  `json:"media"`
-}
-
-type FileInput struct {
-	Name        string
-	ContentType string
-	Size        int64
-	Data        io.Reader
 }

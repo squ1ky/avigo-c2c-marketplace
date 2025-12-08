@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
+	"time"
 )
 
 type MediaRepository struct {
@@ -25,17 +26,19 @@ func (r *MediaRepository) getQueryer(ctx context.Context) SQLQueryer {
 	return r.db
 }
 
-func (r *MediaRepository) Create(ctx context.Context, media *domain.ListingMedia) error {
+func (r *MediaRepository) BulkCreate(ctx context.Context, mediaList []domain.ListingMedia) error {
+	if len(mediaList) == 0 {
+		return nil
+	}
+
 	query := `
 		INSERT INTO listing_media (id, listing_id, file_url, file_type, mime_type, "order", created_at)
 		VALUES (:id, :listing_id, :file_url, :file_type, :mime_type, :order, :created_at)
 	`
 
-	media.ID = uuid.New()
-
-	_, err := r.getQueryer(ctx).NamedExecContext(ctx, query, media)
+	_, err := r.getQueryer(ctx).NamedExecContext(ctx, query, mediaList)
 	if err != nil {
-		return fmt.Errorf("failed to create listing media: %w", err)
+		return fmt.Errorf("failed to bulk create media: %w", err)
 	}
 
 	return nil
@@ -75,6 +78,12 @@ func (r *MediaRepository) GetByListingID(ctx context.Context, listingID uuid.UUI
 	return media, nil
 }
 
+func (r *MediaRepository) UpdateOrder(ctx context.Context, mediaID uuid.UUID, order int) error {
+	query := `UPDATE listing_media SET order = $1 WHERE id = $2`
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query, order, mediaID)
+	return err
+}
+
 func (r *MediaRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM listing_media WHERE id = $1`
 
@@ -95,4 +104,81 @@ func (r *MediaRepository) DeleteAllByListingID(ctx context.Context, listingID uu
 	}
 
 	return nil
+}
+
+func (r *MediaRepository) DeleteExpiredTemp(ctx context.Context, olderThan time.Duration) ([]TempMedia, error) {
+	query := `
+		SELCT * FROM media_uploads
+		WHERE created_at < $1
+		LIMIT 100
+	`
+	threshold := time.Now().Add(-olderThan)
+
+	var batch []TempMedia
+	if err := r.db.SelectContext(ctx, &batch, query, threshold); err != nil {
+		return nil, err
+	}
+
+	if len(batch) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]uuid.UUID, len(batch))
+	for i, m := range batch {
+		ids[i] = m.ID
+	}
+
+	if err := r.DeleteTemp(ctx, ids); err != nil {
+		return nil, err
+	}
+
+	return batch, nil
+}
+
+type TempMedia struct {
+	ID        uuid.UUID `db:"id"`
+	UserID    uuid.UUID `db:"user_id"`
+	S3Key     string    `db:"s3_key"`
+	Filename  string    `db:"filename"`
+	MimeType  string    `db:"mime_type"`
+	Size      int64     `db:"size"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
+func (r *MediaRepository) CreateTemp(ctx context.Context, media *TempMedia) error {
+	query := `
+        INSERT INTO media_uploads (id, user_id, s3_key, filename, mime_type, size, created_at)
+        VALUES (:id, :user_id, :s3_key, :filename, :mime_type, :size, :created_at)
+    `
+	_, err := r.getQueryer(ctx).NamedExecContext(ctx, query, media)
+	return err
+}
+
+func (r *MediaRepository) GetTempByIDs(ctx context.Context, ids []uuid.UUID) ([]TempMedia, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query, args, err := sqlx.In("SELECT * FROM media_uploads WHERE id IN (?)", ids)
+	if err != nil {
+		return nil, err
+	}
+	query = r.db.Rebind(query)
+
+	var list []TempMedia
+	err = r.db.SelectContext(ctx, &list, query, args...)
+	return list, err
+}
+
+func (r *MediaRepository) DeleteTemp(ctx context.Context, ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	query, args, err := sqlx.In("DELETE FROM media_uploads WHERE id IN (?)", ids)
+	if err != nil {
+		return err
+	}
+	query = r.db.Rebind(query)
+
+	_, err = r.getQueryer(ctx).ExecContext(ctx, query, args...)
+	return err
 }

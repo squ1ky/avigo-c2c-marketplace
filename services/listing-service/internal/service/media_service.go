@@ -28,44 +28,54 @@ func NewMediaService(storage *s3.MediaStorage, repo *pgrepo.MediaRepository, cfg
 	}
 }
 
-func (s *MediaService) UploadMedia(ctx context.Context, listingID uuid.UUID, file *multipart.FileHeader, order int) (*domain.ListingMedia, error) {
-	contentType := file.Header.Get("Content-Type")
-	if err := s.validateFile(file.Size, contentType); err != nil {
+type UploadResult struct {
+	ID  uuid.UUID `json:"id"`
+	URL string    `json:"url"`
+}
+
+// UploadTempFile uploads a file into temp storage (S3 + media_uploads)
+func (s *MediaService) UploadTempFile(ctx context.Context, userID uuid.UUID, fileHeader *multipart.FileHeader) (*UploadResult, error) {
+	contentType := fileHeader.Header.Get("Content-Type")
+	if err := s.validateFile(fileHeader.Size, contentType); err != nil {
 		return nil, err
 	}
 
-	src, err := file.Open()
+	src, err := fileHeader.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer src.Close()
 
-	fileUrl, err := s.storage.UploadFile(ctx, s3.UploadRequest{
-		ListingID:   listingID,
-		Filename:    file.Filename,
-		Data:        src,
-		Size:        file.Size,
-		ContentType: contentType,
-	})
+	fileID := uuid.New()
+	key := fmt.Sprintf("uploads/%s/%s_%s", userID.String(), fileID.String(), fileHeader.Filename)
+
+	uploadedKey, err := s.storage.UploadRaw(ctx, key, src, fileHeader.Size, contentType)
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload to storage: %w", err)
+		return nil, fmt.Errorf("s3 upload failed: %w", err)
 	}
 
-	media := &domain.ListingMedia{
-		ListingID: listingID,
-		FileURL:   fileUrl,
-		FileType:  s.determineMediaType(contentType),
+	tempMedia := &pgrepo.TempMedia{
+		ID:        fileID,
+		UserID:    userID,
+		S3Key:     uploadedKey,
+		Filename:  fileHeader.Filename,
 		MimeType:  contentType,
-		Order:     order,
+		Size:      fileHeader.Size,
 		CreatedAt: time.Now(),
 	}
-
-	if err := s.repository.Create(ctx, media); err != nil {
-		_ = s.storage.DeleteFile(ctx, fileUrl)
-		return nil, fmt.Errorf("failed to save media metadata: %w", err)
+	if err := s.repository.CreateTemp(ctx, tempMedia); err != nil {
+		return nil, fmt.Errorf("db save failed: %w", err)
 	}
 
-	return media, nil
+	url := uploadedKey
+	if s.config.PublicURL != "" {
+		url = fmt.Sprintf("%s/%s", strings.TrimRight(s.config.PublicURL, "/"), uploadedKey)
+	}
+
+	return &UploadResult{
+		ID:  fileID,
+		URL: url,
+	}, nil
 }
 
 func (s *MediaService) DeleteMedia(ctx context.Context, mediaID uuid.UUID) error {

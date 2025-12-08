@@ -2,8 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
+	"github.com/gin-gonic/gin"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/grpc/client/user"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/handler"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/middleware"
+	mngrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
+	pgrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/service"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -23,9 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
-
 	log.Println("Configuration loaded successfully")
-	log.Printf("Server will run on %s", cfg.Server.Address)
 
 	ctx := context.Background()
 
@@ -48,14 +55,12 @@ func main() {
 	}
 	mongoDB := mongodb.GetDatabase(mongoClient, cfg.MongoDB.Database)
 	log.Println("MongoDB connected successfully")
-	_ = mongoDB
 
 	log.Println("Initializing MinIO repository...")
 	minioRepo, err := s3.NewMediaStorage(cfg.S3)
 	if err != nil {
 		log.Fatalf("Failed to initialize MinIO: %v", err)
 	}
-	_ = minioRepo
 	log.Printf("MinIO repository initialized (bucket: %s)", cfg.S3.Bucket)
 
 	log.Println("Initializing Kafka Producer...")
@@ -65,15 +70,98 @@ func main() {
 	}
 	log.Printf("Kafka producer initialized (topic: %s)", cfg.Kafka.TopicListingsEvents)
 
+	// gRPC (to user-service)
+	log.Printf("Connecting to User Service gRPC at %s...", cfg.UserService.Address)
+	userClient, err := user.NewClient(cfg.UserService.Address)
+	if err != nil {
+		log.Fatalf("Failed to initialize User Service client: %v", err)
+	}
+	log.Println("User Service gRPC client initialized")
+
+	txManager := pgrepo.NewTransactionManager(postgresDB)
+
+	listingRepo := pgrepo.NewListingRepository(postgresDB)
+	mediaRepo := pgrepo.NewMediaRepository(postgresDB)
+	orderRepo := pgrepo.NewOrderRepository(postgresDB)
+	reviewRepo := pgrepo.NewReviewRepository(postgresDB)
+	charsRepo := mngrepo.NewCharacteristicsRepository(mongoDB)
+
+	mediaSvc := service.NewMediaService(minioRepo, mediaRepo, cfg.S3)
+	listingSvc := service.NewListingService(
+		listingRepo,
+		mediaRepo,
+		charsRepo,
+		minioRepo,
+		txManager,
+	)
+	orderSvc := service.NewOrderService(orderRepo, listingRepo, txManager, userClient)
+	reviewSvc := service.NewReviewService(reviewRepo, orderRepo)
+
+	h := handler.NewHandler(listingSvc, orderSvc, reviewSvc, mediaSvc)
+
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+	router.Use(middleware.ErrorHandler())
+
+	api := router.Group("/api")
+	h.Init(api)
+
+	srv := &http.Server{
+		Addr:    cfg.Server.Address,
+		Handler: router,
+	}
+
+	gcStop := make(chan struct{})
+	go func() {
+		log.Println("Starting GC worker...")
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-gcStop:
+				return
+			case <-ticker.C:
+				deleted, err := mediaRepo.DeleteExpiredTemp(context.Background(), 24*time.Hour)
+				if err != nil {
+					log.Printf("GC Error: %v", err)
+					continue
+				}
+				if len(deleted) > 0 {
+					keys := make([]string, len(deleted))
+					for i, m := range deleted {
+						keys[i] = m.S3Key
+					}
+
+					if err := minioRepo.DeleteFiles(context.Background(), keys); err != nil {
+						log.Printf("GC S3 Error: %v", err)
+					} else {
+						log.Printf("GC: Cleaned %d expired files", len(deleted))
+					}
+				}
+			}
+		}
+	}()
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	<-quit
 	log.Println("\nShutdown signal received...")
-	log.Println("Initiating graceful shutdown...")
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
+
+	log.Println("Stopping HTTP server...")
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Server Force Shutdown: %v", err)
+	}
 
 	log.Println("Flushing Kafka messages...")
 	if err := producer.Close(); err != nil {

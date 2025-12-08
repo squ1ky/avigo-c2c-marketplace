@@ -67,18 +67,14 @@ type FileInfo struct {
 	Metadata     map[string]string
 }
 
-func (s *MediaStorage) UploadFile(ctx context.Context, req UploadRequest) (string, error) {
-	// Generate unique path: listings/{listing_id}/{uuid}_{filename}
-	objectKey := fmt.Sprintf("listings/%s/%s_%s", req.ListingID, uuid.New(), req.Filename)
-
-	_, err := s.client.PutObject(ctx, s.config.Bucket, objectKey, req.Data, req.Size, minio.PutObjectOptions{
-		ContentType: req.ContentType,
+func (s *MediaStorage) UploadRaw(ctx context.Context, key string, data io.Reader, size int64, contentType string) (string, error) {
+	_, err := s.client.PutObject(ctx, s.config.Bucket, key, data, size, minio.PutObjectOptions{
+		ContentType: contentType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
-
-	return objectKey, nil
+	return key, nil
 }
 
 func (s *MediaStorage) GetPresignedDownloadURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
