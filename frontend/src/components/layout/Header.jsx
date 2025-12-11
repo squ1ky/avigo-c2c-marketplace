@@ -7,6 +7,7 @@ function Header() {
     const { user } = useContext(AuthContext);
 
     const profileLink = user ? '/account' : '/auth/login';
+    const createListingLink = user ? '/create' : '/auth/login'
 
     return (
         <header className="header">
@@ -139,9 +140,12 @@ function Header() {
                         </svg>
                     </Link>
 
-                    <button className="btn btn-primary">
+                    <Link
+                        to={createListingLink}
+                        className={"btn btn-primary"}
+                        state={!user ? { from: { pathname: '/create' } } : null}>
                         + Разместить объявление
-                    </button>
+                    </Link>
                 </div>
 
                 <button className="hamburger" aria-label="Меню">

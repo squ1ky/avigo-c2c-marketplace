@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -138,7 +139,7 @@ func Load() (*Config, error) {
 			Endpoint:        viper.GetString("S3_ENDPOINT"),
 			UseSSL:          viper.GetBool("S3_USE_SSL"),
 			MaxFileSize:     viper.GetInt64("S3_MAX_FILE_SIZE"),
-			AllowedTypes:    viper.GetStringSlice("S3_ALLOWED_TYPES"),
+			AllowedTypes:    strings.Split(viper.GetString("S3_ALLOWED_TYPES"), ","),
 			PublicURL:       viper.GetString("S3_PUBLIC_URL"),
 		},
 		KafkaConfig{

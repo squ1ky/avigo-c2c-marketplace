@@ -12,6 +12,9 @@ import './styles/footer.css'
 import AccountPage from "./pages/AccountPage.jsx";
 import EditProfilePage from "./pages/EditProfilePage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
+import CreateListingPage from "./pages/CreateListingPage.jsx";
+import ListingPage from "./pages/ListingPage.jsx";
+import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 
 function App() {
     return (
@@ -23,13 +26,47 @@ function App() {
                     <Route path="/auth/login" element={<Layout><LoginPage /></Layout>} />
                     <Route path="/auth/register" element={<Layout><RegisterPage /></Layout>} />
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />
-                    <Route path="/account" element={<Layout><AccountPage /></Layout>}></Route>
-                    <Route path="/account/edit" element={<Layout><EditProfilePage /></Layout>}></Route>
-                    <Route path="/account/change-password" element={<Layout><ChangePasswordPage /></Layout>}></Route>
+                    <Route path="/listing/:id" element={<Layout><ListingPage /></Layout>} />
+
+                    <Route
+                        path="/create"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><CreateListingPage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/account"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><AccountPage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/account/edit"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><EditProfilePage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/account/change-password"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><ChangePasswordPage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
                 </Routes>
             </AuthProvider>
         </Router>
-    )
+    );
 }
 
 export default App

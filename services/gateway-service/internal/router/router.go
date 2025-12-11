@@ -34,6 +34,13 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			auth.POST("/confirm-email", userProxy)
 		}
 
+		listingProxy := proxy.ReverseProxy(cfg.Services.ListingServiceURL)
+		publicListings := v1.Group("/listings")
+		{
+			publicListings.GET("/:id", listingProxy)
+		}
+		v1.GET("/categories", listingProxy)
+
 		// JWT require
 		protected := v1.Group("")
 		protected.Use(middleware.JWTMiddleware(cfg.JWT.Secret))
@@ -52,6 +59,18 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			{
 				usersProtected.GET("/me/profile", userProxy)
 				usersProtected.PATCH("/me/profile", userProxy)
+			}
+
+			listingsProtected := protected.Group("/listings")
+			{
+				listingsProtected.POST("", listingProxy)
+				listingsProtected.PUT("/:id", listingProxy)
+				listingsProtected.DELETE("/:id", listingProxy)
+			}
+
+			mediaProtected := protected.Group("/media")
+			{
+				mediaProtected.POST("/upload", listingProxy)
 			}
 		}
 	}

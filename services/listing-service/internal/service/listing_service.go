@@ -119,6 +119,48 @@ func (s *ListingService) GetByID(ctx context.Context, id uuid.UUID) (*dto.Listin
 	return mapper.ToListingResponse(listing, chars, media), nil
 }
 
+func (s *ListingService) GetCategoriesTree(ctx context.Context) ([]*dto.CategoryResponse, error) {
+	categories, err := s.listingRepo.GetAllCategories(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	return s.buildCategoryTree(categories), nil
+}
+
+func (s *ListingService) buildCategoryTree(allCats []*domain.Category) []*dto.CategoryResponse {
+	categoryMap := make(map[string]*dto.CategoryResponse)
+	var roots []*dto.CategoryResponse
+
+	for _, cat := range allCats {
+		categoryMap[cat.ID.String()] = &dto.CategoryResponse{
+			ID:       cat.ID.String(),
+			Name:     cat.Name,
+			Slug:     cat.Slug,
+			Children: make([]*dto.CategoryResponse, 0),
+		}
+		if cat.ParentID != nil {
+			pid := cat.ParentID.String()
+			categoryMap[cat.ID.String()].ParentID = &pid
+		}
+	}
+
+	for _, cat := range allCats {
+		dtoCat := categoryMap[cat.ID.String()]
+
+		if cat.ParentID == nil {
+			roots = append(roots, dtoCat)
+		} else {
+			parentID := cat.ParentID.String()
+			if parent, exists := categoryMap[parentID]; exists {
+				parent.Children = append(parent.Children, dtoCat)
+			}
+		}
+	}
+
+	return roots
+}
+
 // Update verifies user permissions, then compiles a final list of media files
 // by merging existing (already attached) and new (from temp storage) files, arranging them in the client-specified order.
 func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInput) (*dto.ListingResponse, error) {

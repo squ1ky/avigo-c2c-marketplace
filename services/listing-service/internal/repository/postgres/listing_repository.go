@@ -29,17 +29,27 @@ func (r *ListingRepository) getQueryer(ctx context.Context) SQLQueryer {
 func (r *ListingRepository) Create(ctx context.Context, listing *domain.Listing) error {
 	query := `
 		INSERT INTO listings (id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at)
-		VALUES (:id, :user_id, :category_id, :title, :description, :price, :currency, :status, :views_count, :is_sold, :created_at, :updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 
-	listing.ID = uuid.New()
-	listing.CreatedAt = time.Now()
-	listing.UpdatedAt = time.Now()
 	listing.ViewsCount = 0
 	listing.IsSold = false
 	listing.Status = domain.ListingStatusActive
 
-	_, err := r.getQueryer(ctx).ExecContext(ctx, query, listing)
+	_, err := r.getQueryer(ctx).ExecContext(ctx, query,
+		listing.ID,
+		listing.UserID,
+		listing.CategoryID,
+		listing.Title,
+		listing.Description,
+		listing.Price,
+		listing.Currency,
+		listing.Status,
+		listing.ViewsCount,
+		listing.IsSold,
+		listing.CreatedAt,
+		listing.UpdatedAt,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create listing: %w", err)
 	}
@@ -161,6 +171,21 @@ func (r *ListingRepository) GetByCategoryID(ctx context.Context, categoryID uuid
 	}
 
 	return listings, nil
+}
+
+func (r *ListingRepository) GetAllCategories(ctx context.Context) ([]*domain.Category, error) {
+	query := `
+		SELECT id, name, slug, parent_id, level, "order"
+		FROM categories
+		ORDER BY level ASC, "order" ASC
+	`
+
+	var categories []*domain.Category
+	if err := r.db.SelectContext(ctx, &categories, query); err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	return categories, nil
 }
 
 func (r *ListingRepository) MarkAsSold(ctx context.Context, id uuid.UUID) error {

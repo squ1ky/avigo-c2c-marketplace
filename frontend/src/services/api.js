@@ -83,3 +83,44 @@ export const changePassword = async (currentPassword, newPassword) => {
     });
     return response.data;
 };
+
+// === Media (Listing Service) ===
+
+export const uploadMedia = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/media/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data; // { id: "uuid", url: "..." }
+};
+
+// === Listings ===
+
+export const createListing = async (data) => {
+    // data: { title, description, price, category_id, media_ids: [], ... }
+    const response = await api.post('/listings', data);
+    return response.data;
+};
+
+export const getListing = async (id) => {
+    const response = await api.get(`/listings/${id}`);
+    return response.data;
+};
+
+export const getCategories = async () => {
+    const response = await api.get('/categories');
+    return response.data;
+};
+
+export const updateListing = async (id, data) => {
+    const response = await api.put(`/listings/${id}`, data);
+    return response.data;
+};
+
+export const deleteListing = async (id) => {
+    await api.delete(`/listings/${id}`);
+};

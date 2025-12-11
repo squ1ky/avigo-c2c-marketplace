@@ -15,6 +15,11 @@ func (h *Handler) initListingRoutes(api *gin.RouterGroup) {
 		listings.PUT("/:id", h.updateListing)
 		listings.DELETE("/:id", h.deleteListing)
 	}
+
+	categories := api.Group("/categories")
+	{
+		categories.GET("", h.getCategories)
+	}
 }
 
 func (h *Handler) createListing(c *gin.Context) {
@@ -55,6 +60,16 @@ func (h *Handler) getListing(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) getCategories(c *gin.Context) {
+	categories, err := h.listingSvc.GetCategoriesTree(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, categories)
 }
 
 func (h *Handler) updateListing(c *gin.Context) {
