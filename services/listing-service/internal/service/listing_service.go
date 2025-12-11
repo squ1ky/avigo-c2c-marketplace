@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/config"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/dto"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/mapper"
@@ -20,6 +21,7 @@ type ListingService struct {
 	charsRepo   *mngrepo.CharacteristicsRepository
 	storage     *s3.MediaStorage
 	txManager   pgrepo.TransactionManager
+	s3Config    config.S3Config
 }
 
 func NewListingService(
@@ -28,6 +30,7 @@ func NewListingService(
 	charsRepo *mngrepo.CharacteristicsRepository,
 	storage *s3.MediaStorage,
 	txManager pgrepo.TransactionManager,
+	s3Config config.S3Config,
 ) *ListingService {
 	return &ListingService{
 		listingRepo: listingRepo,
@@ -35,6 +38,7 @@ func NewListingService(
 		charsRepo:   charsRepo,
 		storage:     storage,
 		txManager:   txManager,
+		s3Config:    s3Config,
 	}
 }
 
@@ -100,7 +104,7 @@ func (s *ListingService) Create(ctx context.Context, input dto.CreateListingInpu
 		return nil, fmt.Errorf("failed to create listing (mongo): %w", err)
 	}
 
-	return mapper.ToListingResponse(listing, chars, nil), nil
+	return mapper.ToListingResponse(listing, chars, nil, s.s3Config.PublicURL), nil
 }
 
 func (s *ListingService) GetByID(ctx context.Context, id uuid.UUID) (*dto.ListingResponse, error) {
@@ -116,7 +120,7 @@ func (s *ListingService) GetByID(ctx context.Context, id uuid.UUID) (*dto.Listin
 		_ = s.listingRepo.IncrementViews(context.Background(), id)
 	}()
 
-	return mapper.ToListingResponse(listing, chars, media), nil
+	return mapper.ToListingResponse(listing, chars, media, s.s3Config.PublicURL), nil
 }
 
 func (s *ListingService) GetCategoriesTree(ctx context.Context) ([]*dto.CategoryResponse, error) {
@@ -277,7 +281,7 @@ func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInpu
 		go s.storage.DeleteFiles(context.Background(), keysToDelete)
 	}
 
-	return mapper.ToListingResponse(existing, nil, finalMediaList), nil
+	return mapper.ToListingResponse(existing, nil, finalMediaList, s.s3Config.PublicURL), nil
 }
 
 func (s *ListingService) Delete(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {

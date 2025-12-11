@@ -31,6 +31,13 @@ type UpdateListingInput struct {
 	Tags            []string               `json:"tags"`
 }
 
+type ListingMediaResponse struct {
+	ID       uuid.UUID        `json:"id"`
+	FileURL  string           `json:"file_url"`
+	FileType domain.MediaType `json:"file_type"`
+	Order    int              `json:"order"`
+}
+
 type ListingResponse struct {
 	ID              uuid.UUID              `json:"id"`
 	UserID          uuid.UUID              `json:"user_id"`
@@ -46,7 +53,7 @@ type ListingResponse struct {
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Characteristics map[string]interface{} `json:"characteristics"`
 	Tags            []string               `json:"tags"`
-	Media           []domain.ListingMedia  `json:"media"`
+	Media           []ListingMediaResponse `json:"media"`
 }
 
 type CategoryResponse struct {

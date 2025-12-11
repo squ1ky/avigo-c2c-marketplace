@@ -93,6 +93,7 @@ func main() {
 		charsRepo,
 		minioRepo,
 		txManager,
+		cfg.S3,
 	)
 	orderSvc := service.NewOrderService(orderRepo, listingRepo, txManager, userClient)
 	reviewSvc := service.NewReviewService(reviewRepo, orderRepo)

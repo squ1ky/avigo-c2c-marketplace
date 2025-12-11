@@ -108,7 +108,7 @@ func (r *MediaRepository) DeleteAllByListingID(ctx context.Context, listingID uu
 
 func (r *MediaRepository) DeleteExpiredTemp(ctx context.Context, olderThan time.Duration) ([]TempMedia, error) {
 	query := `
-		SELCT * FROM media_uploads
+		SELECT * FROM media_uploads
 		WHERE created_at < $1
 		LIMIT 100
 	`

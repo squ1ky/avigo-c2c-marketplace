@@ -1,6 +1,8 @@
 package mapper
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,7 +49,25 @@ func ToListingResponse(
 	listing *domain.Listing,
 	chars *domain.ListingCharacteristics,
 	media []domain.ListingMedia,
+	baseURL string,
 ) *dto.ListingResponse {
+	mediaResp := make([]dto.ListingMediaResponse, 0, len(media))
+
+	for _, m := range media {
+		fullURL := m.FileURL
+
+		if baseURL != "" && !strings.HasPrefix(fullURL, "http") {
+			fullURL = fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), strings.TrimLeft(m.FileURL, "/"))
+		}
+
+		mediaResp = append(mediaResp, dto.ListingMediaResponse{
+			ID:       m.ID,
+			FileURL:  fullURL,
+			FileType: m.FileType,
+			Order:    m.Order,
+		})
+	}
+
 	resp := &dto.ListingResponse{
 		ID:              listing.ID,
 		UserID:          listing.UserID,
@@ -61,7 +81,7 @@ func ToListingResponse(
 		IsSold:          listing.IsSold,
 		CreatedAt:       listing.CreatedAt,
 		UpdatedAt:       listing.UpdatedAt,
-		Media:           media,
+		Media:           mediaResp,
 		Characteristics: make(map[string]interface{}),
 		Tags:            make([]string, 0),
 	}
@@ -73,10 +93,6 @@ func ToListingResponse(
 		if chars.Tags != nil {
 			resp.Tags = chars.Tags
 		}
-	}
-
-	if resp.Media == nil {
-		resp.Media = []domain.ListingMedia{}
 	}
 
 	return resp

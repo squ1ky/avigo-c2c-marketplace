@@ -83,8 +83,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
     ports:
-      - "9002:9000"
       - "9001:9001"
+      - "9000:9000"
     volumes:
       - minio-data:/data
     healthcheck:
@@ -93,6 +93,20 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until (mc alias set myminio http://minio:9000 minioadmin minioadmin123); do echo '...waiting...'; sleep 1; done;
+        mc mb myminio/avigo-listings-media || true;
+        mc anonymous set download myminio/avigo-listings-media;
+        exit 0;
 
   gateway-service:
     build:
