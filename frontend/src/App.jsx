@@ -15,6 +15,8 @@ import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 import CreateListingPage from "./pages/CreateListingPage.jsx";
 import ListingPage from "./pages/ListingPage.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
+import MySalesPage from "./pages/MySalesPage.jsx";
+import MyPurchasesPage from "./pages/MyPurchasesPage.jsx";
 
 function App() {
     return (
@@ -60,6 +62,24 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <Layout><ChangePasswordPage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/account/purchases"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><MyPurchasesPage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/account/sales"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><MySalesPage /></Layout>
                             </ProtectedRoute>
                         }
                     />

@@ -124,3 +124,15 @@ export const updateListing = async (id, data) => {
 export const deleteListing = async (id) => {
     await api.delete(`/listings/${id}`);
 };
+
+// === Orders (Purchases & Sales) ===
+
+export const getMyPurchases = async () => {
+    const response = await api.get('/orders/purchases');
+    return response.data;
+};
+
+export const getMySales = async () => {
+    const response = await api.get('/orders/sales');
+    return response.data;
+};

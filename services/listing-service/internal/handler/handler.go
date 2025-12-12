@@ -30,7 +30,7 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 	v1 := api.Group("/v1")
 	{
 		h.initListingRoutes(v1)
-		//h.initOrderRoutes(v1)
+		h.initOrderRoutes(v1)
 		//h.initReviewRoutes(v1)
 		h.initMediaRoutes(v1)
 	}

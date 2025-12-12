@@ -35,6 +35,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		}
 
 		listingProxy := proxy.ReverseProxy(cfg.Services.ListingServiceURL)
+		orderProxy := listingProxy
 		publicListings := v1.Group("/listings")
 		{
 			publicListings.GET("/:id", listingProxy)
@@ -66,6 +67,12 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 				listingsProtected.POST("", listingProxy)
 				listingsProtected.PUT("/:id", listingProxy)
 				listingsProtected.DELETE("/:id", listingProxy)
+			}
+
+			ordersProtected := protected.Group("/orders")
+			{
+				ordersProtected.GET("/purchases", orderProxy)
+				ordersProtected.GET("/sales", orderProxy)
 			}
 
 			mediaProtected := protected.Group("/media")
