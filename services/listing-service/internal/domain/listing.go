@@ -29,6 +29,11 @@ const (
 	ListingStatusInactive ListingStatus = "inactive"
 )
 
+type ListingWithMedia struct {
+	Listing
+	MainImage string
+}
+
 type Currency string
 
 const (

@@ -64,6 +64,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 
 			listingsProtected := protected.Group("/listings")
 			{
+				listingsProtected.GET("/my", listingProxy)
 				listingsProtected.POST("", listingProxy)
 				listingsProtected.PUT("/:id", listingProxy)
 				listingsProtected.DELETE("/:id", listingProxy)

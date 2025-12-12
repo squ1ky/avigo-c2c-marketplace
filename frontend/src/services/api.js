@@ -111,6 +111,11 @@ export const getListing = async (id) => {
     return response.data;
 };
 
+export const getMyListings = async () => {
+    const response = await api.get('/listings/my');
+    return response.data;
+};
+
 export const getCategories = async () => {
     const response = await api.get('/categories');
     return response.data;

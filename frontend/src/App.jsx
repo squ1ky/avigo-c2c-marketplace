@@ -17,6 +17,7 @@ import ListingPage from "./pages/ListingPage.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import MySalesPage from "./pages/MySalesPage.jsx";
 import MyPurchasesPage from "./pages/MyPurchasesPage.jsx";
+import MyListingsPage from "./pages/MyListingsPage.jsx";
 
 function App() {
     return (
@@ -80,6 +81,15 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <Layout><MySalesPage /></Layout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/account/listings"
+                        element={
+                            <ProtectedRoute>
+                                <Layout><MyListingsPage /></Layout>
                             </ProtectedRoute>
                         }
                     />

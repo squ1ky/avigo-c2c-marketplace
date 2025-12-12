@@ -165,6 +165,33 @@ func (s *ListingService) buildCategoryTree(allCats []*domain.Category) []*dto.Ca
 	return roots
 }
 
+func (s *ListingService) GetUserListings(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.ListingResponse, error) {
+	listings, err := s.listingRepo.GetByUserID(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user listings: %w", err)
+	}
+
+	responses := make([]dto.ListingResponse, 0, len(listings))
+
+	for _, listing := range listings {
+		var mediaList []domain.ListingMedia
+
+		if listing.MainImage != "" {
+			mediaList = append(mediaList, domain.ListingMedia{
+				ListingID: listing.ID,
+				FileURL:   listing.MainImage,
+				FileType:  domain.MediaTypeImage,
+				Order:     0,
+			})
+		}
+
+		resp := mapper.ToListingResponse(&listing.Listing, nil, mediaList, s.s3Config.PublicURL)
+		responses = append(responses, *resp)
+	}
+
+	return responses, nil
+}
+
 // Update verifies user permissions, then compiles a final list of media files
 // by merging existing (already attached) and new (from temp storage) files, arranging them in the client-specified order.
 func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInput) (*dto.ListingResponse, error) {

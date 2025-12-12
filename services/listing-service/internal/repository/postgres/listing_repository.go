@@ -128,21 +128,36 @@ func (r *ListingRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.Listing, error) {
+func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.ListingWithMedia, error) {
 	query := `
-		SELECT id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at
-		FROM listings
-		WHERE user_id = $1
+		SELECT l.id, l.user_id, l.category_id, l.title, l.description,
+		       l.price, l.currency, l.status, l.views_count, l.is_sold, l.created_at, l.updated_at,
+			   COALESCE(m.file_url, '') as main_image_url
+		FROM listings l
+		LEFT JOIN listing_media m on l.id = m.listing_id AND m."order" = 0
+		WHERE user_id = $1 AND status = 'active'
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
-	var listings []domain.Listing
-	if err := r.db.SelectContext(ctx, &listings, query, userID, limit, offset); err != nil {
+	var rows []struct {
+		domain.Listing
+		MainImageURL string `db:"main_image_url"`
+	}
+
+	if err := r.db.SelectContext(ctx, &rows, query, userID, limit, offset); err != nil {
 		return nil, fmt.Errorf("failed to get listings by user: %w", err)
 	}
 
-	return listings, nil
+	results := make([]domain.ListingWithMedia, len(rows))
+	for i, row := range rows {
+		results[i] = domain.ListingWithMedia{
+			Listing:   row.Listing,
+			MainImage: row.MainImageURL,
+		}
+	}
+
+	return results, nil
 }
 
 func (r *ListingRepository) IncrementViews(ctx context.Context, id uuid.UUID) error {

@@ -27,6 +27,10 @@ function AccountPage() {
         navigate('/account/sales');
     };
 
+    const handleMyListings = () => {
+        navigate('/account/listings');
+    };
+
     useEffect(() => {
         const loadProfile = async () => {
             try {
@@ -155,10 +159,36 @@ function AccountPage() {
                             </div>
                         </div>
 
-                        <div className="profile-orders-section" style={{ marginTop: '2.5rem', borderTop: '1px solid #eee', paddingTop: '1.5rem' }}>
+                        <div className="profile-orders-section"
+                             style={{marginTop: '2.5rem', borderTop: '1px solid #eee', paddingTop: '1.5rem'}}>
                             <h2 className="profile-section-title">Активность</h2>
 
-                            <div className="orders-buttons-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                            <div className="orders-buttons-grid"
+                                 style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px'}}>
+
+                                {/* Кнопка "Мои Объявления" */}
+                                <div
+                                    onClick={handleMyListings}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '20px',
+                                        backgroundColor: '#f8f9fa',
+                                        border: '1px solid #e9ecef',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        textAlign: 'center'
+                                    }}
+                                    className="order-card-btn"
+                                >
+                                    <span style={{fontSize: '28px', marginBottom: '8px'}}>📋</span>
+                                    <span style={{fontWeight: '600', color: '#333'}}>Мои Объявления</span>
+                                </div>
+
+                                {/* Кнопка "Мои Покупки" */}
                                 <div
                                     onClick={handleMyPurchases}
                                     style={{
@@ -176,10 +206,11 @@ function AccountPage() {
                                     }}
                                     className="order-card-btn"
                                 >
-                                    <span style={{ fontSize: '28px', marginBottom: '8px' }}>🛍️</span>
-                                    <span style={{ fontWeight: '600', color: '#333' }}>Мои Покупки</span>
+                                    <span style={{fontSize: '28px', marginBottom: '8px'}}>🛍️</span>
+                                    <span style={{fontWeight: '600', color: '#333'}}>Мои Покупки</span>
                                 </div>
 
+                                {/* Кнопка "Мои Продажи" */}
                                 <div
                                     onClick={handleMySales}
                                     style={{
@@ -197,8 +228,8 @@ function AccountPage() {
                                     }}
                                     className="order-card-btn"
                                 >
-                                    <span style={{ fontSize: '28px', marginBottom: '8px' }}>💰</span>
-                                    <span style={{ fontWeight: '600', color: '#333' }}>Мои Продажи</span>
+                                    <span style={{fontSize: '28px', marginBottom: '8px'}}>💰</span>
+                                    <span style={{fontWeight: '600', color: '#333'}}>Мои Продажи</span>
                                 </div>
                             </div>
                         </div>
