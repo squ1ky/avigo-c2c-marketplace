@@ -43,7 +43,7 @@ const MyListingsPage = () => {
 
     const handleEdit = (id, e) => {
         e.stopPropagation();
-        toast('Редактирование пока не реализовано', { icon: '🔧' });
+        navigate(`/listing/edit/${id}`);
     };
 
     const formatDate = (dateString) => {

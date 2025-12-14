@@ -84,7 +84,7 @@ func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing)
 		    price = :price,
 		    currency = :currency,
 		    status = :status,
-		    category = :category_id,
+		    category_id = :category_id,
 		    updated_at = :updated_at
 		WHERE id = :id
 	`

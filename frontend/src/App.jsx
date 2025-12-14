@@ -18,6 +18,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import MySalesPage from "./pages/MySalesPage.jsx";
 import MyPurchasesPage from "./pages/MyPurchasesPage.jsx";
 import MyListingsPage from "./pages/MyListingsPage.jsx";
+import EditListingPage from "./pages/EditListingPage.jsx";
 
 function App() {
     return (
@@ -33,6 +34,7 @@ function App() {
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/create" element={<Layout><CreateListingPage /></Layout>} />
+                        <Route path="/listing/edit/:id" element={<Layout><EditListingPage /></Layout>} />
 
                         <Route path="/account" element={<Layout><AccountPage /></Layout>} />
                         <Route path="/account/edit" element={<Layout><EditProfilePage /></Layout>} />
