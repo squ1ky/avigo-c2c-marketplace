@@ -31,14 +31,17 @@ function App() {
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />
                     <Route path="/listing/:id" element={<Layout><ListingPage /></Layout>} />
 
-                    {/* protected routes */}
-                    <Route path="/create" element={<ProtectedRoute><Layout><CreateListingPage /></Layout></ProtectedRoute>}/>
-                    <Route path="/account" element={<ProtectedRoute><Layout><AccountPage /></Layout></ProtectedRoute>}/>
-                    <Route path="/account/edit" element={<ProtectedRoute><Layout><EditProfilePage /></Layout></ProtectedRoute>}/>
-                    <Route path="/account/change-password" element={<ProtectedRoute><Layout><ChangePasswordPage /></Layout></ProtectedRoute>}/>
-                    <Route path="/account/purchases" element={<ProtectedRoute><Layout><MyPurchasesPage /></Layout></ProtectedRoute>}/>
-                    <Route path="/account/sales" element={<ProtectedRoute><Layout><MySalesPage /></Layout></ProtectedRoute>}/>
-                    <Route path="/account/listings" element={<ProtectedRoute><Layout><MyListingsPage /></Layout></ProtectedRoute>}/>
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/create" element={<Layout><CreateListingPage /></Layout>} />
+
+                        <Route path="/account" element={<Layout><AccountPage /></Layout>} />
+                        <Route path="/account/edit" element={<Layout><EditProfilePage /></Layout>} />
+                        <Route path="/account/change-password" element={<Layout><ChangePasswordPage /></Layout>} />
+
+                        <Route path="/account/purchases" element={<Layout><MyPurchasesPage /></Layout>} />
+                        <Route path="/account/sales" element={<Layout><MySalesPage /></Layout>} />
+                        <Route path="/account/listings" element={<Layout><MyListingsPage /></Layout>} />
+                    </Route>
                 </Routes>
             </AuthProvider>
         </Router>
