@@ -31,68 +31,14 @@ function App() {
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />
                     <Route path="/listing/:id" element={<Layout><ListingPage /></Layout>} />
 
-                    <Route
-                        path="/create"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><CreateListingPage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/account"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><AccountPage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/account/edit"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><EditProfilePage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/account/change-password"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><ChangePasswordPage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/account/purchases"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><MyPurchasesPage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/account/sales"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><MySalesPage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    <Route
-                        path="/account/listings"
-                        element={
-                            <ProtectedRoute>
-                                <Layout><MyListingsPage /></Layout>
-                            </ProtectedRoute>
-                        }
-                    />
+                    {/* protected routes */}
+                    <Route path="/create" element={<ProtectedRoute><Layout><CreateListingPage /></Layout></ProtectedRoute>}/>
+                    <Route path="/account" element={<ProtectedRoute><Layout><AccountPage /></Layout></ProtectedRoute>}/>
+                    <Route path="/account/edit" element={<ProtectedRoute><Layout><EditProfilePage /></Layout></ProtectedRoute>}/>
+                    <Route path="/account/change-password" element={<ProtectedRoute><Layout><ChangePasswordPage /></Layout></ProtectedRoute>}/>
+                    <Route path="/account/purchases" element={<ProtectedRoute><Layout><MyPurchasesPage /></Layout></ProtectedRoute>}/>
+                    <Route path="/account/sales" element={<ProtectedRoute><Layout><MySalesPage /></Layout></ProtectedRoute>}/>
+                    <Route path="/account/listings" element={<ProtectedRoute><Layout><MyListingsPage /></Layout></ProtectedRoute>}/>
                 </Routes>
             </AuthProvider>
         </Router>
