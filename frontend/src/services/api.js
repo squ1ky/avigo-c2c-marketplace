@@ -23,10 +23,34 @@ const errorMessages = {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        const status = error.response?.status;
+        const msg = (
+            error.response?.data?.error ||
+            error.message ||
+            ''
+        ).toLowerCase();
+
+        const isAuthError =
+            status === 401 ||
+            msg.includes('missing authentication') ||
+            msg.includes('token expired') ||
+            msg.includes('invalid token');
+
+        if (isAuthError) {
+            if (!window.location.pathname.includes('/auth/login')) {
+                localStorage.removeItem('user');
+
+                window.location.href = '/auth/login';
+
+                return new Promise(() => {});
+            }
+        }
+
         if (error.response?.data?.code) {
             const code = error.response.data.code;
             error.message = errorMessages[code] || error.response.data.error;
         }
+
         return Promise.reject(error);
     }
 );
