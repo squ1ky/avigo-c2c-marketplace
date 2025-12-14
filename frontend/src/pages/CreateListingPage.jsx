@@ -50,7 +50,7 @@ function CreateListingPage() {
         try {
             const created = await createListing(payload);
             toast.success('Объявление опубликовано!');
-            navigate(`/listing/${created.id}`);
+            navigate(`/listings/${created.id}`);
         } catch (error) {
             console.error(error);
             toast.error(error.message || 'Ошибка создания');

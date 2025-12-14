@@ -5,12 +5,14 @@ import ImageUploader from '../components/common/ImageUploader';
 import CategorySelect from '../components/common/CategorySelect';
 import toast from 'react-hot-toast';
 import '../styles/main.css';
+import {useAuth} from "../context/AuthContext.jsx";
 
 function EditListingPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const { user } = useAuth();
 
     const [formData, setFormData] = useState({
         title: '',
@@ -24,20 +26,21 @@ function EditListingPage() {
     useEffect(() => {
         const fetchListing = async () => {
             try {
-                const data = await getListing(id);
+                const response = await getListing(id);
+                const listing = response.listing;
 
                 setFormData({
-                    title: data.title,
-                    description: data.description,
-                    price: data.price,
-                    currency: data.currency,
-                    category_id: data.category_id,
-                    media_ids: data.media ? data.media.map(m => m.id) : []
+                    title: listing.title,
+                    description: listing.description,
+                    price: listing.price,
+                    currency: listing.currency,
+                    category_id: listing.category_id,
+                    media_ids: listing.media ? listing.media.map(m => m.id) : []
                 });
             } catch (error) {
                 console.error("Failed to fetch listing", error);
                 toast.error("Не удалось загрузить данные объявления");
-                navigate('/account/listings');
+                navigate(`/account/${user?.id}/listings`);
             } finally {
                 setLoading(false);
             }
@@ -79,7 +82,7 @@ function EditListingPage() {
         try {
             await updateListing(id, payload);
             toast.success('Объявление обновлено!');
-            navigate(`/listing/${id}`);
+            navigate(`/listings/${id}`);
         } catch (error) {
             console.error(error);
             toast.error(error.message || 'Ошибка обновления');

@@ -60,6 +60,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			{
 				usersProtected.GET("/me/profile", userProxy)
 				usersProtected.PATCH("/me/profile", userProxy)
+				usersProtected.GET("/:id/profile", userProxy)
 			}
 
 			listingsProtected := protected.Group("/listings")

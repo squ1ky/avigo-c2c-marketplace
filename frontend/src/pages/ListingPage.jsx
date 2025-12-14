@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getListing } from '../services/api';
 import toast from 'react-hot-toast';
 
 function ListingPage() {
 
     const { id } = useParams();
-    const [listing, setListing] = useState(null);
+    const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [showPhone, setShowPhone] = useState(false);
 
     useEffect(() => {
         const fetchListing = async () => {
             try {
-                const data = await getListing(id);
-                setListing(data);
+                const response = await getListing(id);
+                setData(response);
             } catch (error) {
                 toast.error('Не удалось загрузить объявление');
             } finally {
@@ -24,20 +25,22 @@ function ListingPage() {
         fetchListing();
     }, [id]);
 
-    // Хелпер для формирования URL
     const getImageUrl = (url) => {
         if (!url) return '/assets/images/placeholder.jpg';
-        if (url.startsWith('http')) return url;
-        return S3_BASE + url;
+        return url;
     };
 
     if (loading) return <div className="container">Загрузка...</div>;
-    if (!listing) return <div className="container">Объявление не найдено</div>;
+    if (!data) return <div className="container">Объявление не найдено</div>;
 
-    // Вычисляем URL для главной картинки
+    const { listing, user } = data;
+
     const mainImage = listing.media && listing.media.length > 0
         ? getImageUrl(listing.media[activeImageIndex].file_url)
         : '/assets/images/placeholder.jpg';
+
+    const phoneRaw = user.profile?.phone;
+    const hasPhone = !!phoneRaw;
 
     return (
         <div className="container" style={{ marginTop: '2rem' }}>
@@ -75,11 +78,11 @@ function ListingPage() {
                                         border: index === activeImageIndex ? '2px solid var(--go-cyan)' : '1px solid #ddd',
                                         borderRadius: '4px',
                                         overflow: 'hidden',
-                                        flexShrink: 0 // Чтобы миниатюры не сжимались
+                                        flexShrink: 0
                                     }}
                                 >
                                     <img
-                                        src={getImageUrl(item.file_url)} // Хак здесь тоже
+                                        src={getImageUrl(item.file_url)}
                                         alt=""
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
@@ -111,20 +114,68 @@ function ListingPage() {
                             {listing.price.toLocaleString()} {listing.currency === 'RUB' ? '₽' : listing.currency}
                         </div>
 
-                        <button className="btn btn-primary btn-large" style={{ width: '100%', marginBottom: '1rem' }}>
-                            Купить с доставкой
+                        {hasPhone ? (
+                            !showPhone ? (
+                                <button
+                                    className="btn btn-primary btn-large"
+                                    style={{ width: '100%', marginBottom: '0.5rem', backgroundColor: '#2ecc71', borderColor: '#27ae60' }}
+                                    onClick={() => setShowPhone(true)}
+                                >
+                                    Показать телефон
+                                </button>
+                            ) : (
+                                <a
+                                    href={`tel:${phoneRaw}`}
+                                    className="btn btn-large"
+                                    style={{
+                                        width: '100%',
+                                        marginBottom: '0.5rem',
+                                        backgroundColor: '#fff',
+                                        border: '2px solid #2ecc71',
+                                        color: '#2ecc71',
+                                        fontSize: '1.2rem',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        textDecoration: 'none'
+                                    }}
+                                >
+                                    {phoneRaw}
+                                </a>
+                            )
+                        ) : null}
+
+                        <button className="btn btn-secondary btn-large" style={{ width: '100%', marginBottom: '1rem' }}>
+                            Написать сообщение
                         </button>
 
-                        <button className="btn btn-secondary btn-large" style={{ width: '100%' }}>
-                            Написать продавцу
+                        <button className="btn btn-primary btn-large" style={{ width: '100%' }}>
+                            Купить с доставкой
                         </button>
 
                         <div className="seller-info" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
                             <p style={{ color: '#666', fontSize: '0.9rem' }}>Продавец</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                                <div style={{ width: '40px', height: '40px', background: '#ddd', borderRadius: '50%' }}></div>
-                                <span style={{ fontWeight: '600' }}>Пользователь {listing.user_id ? listing.user_id.slice(0, 8) : '...'}</span>
-                            </div>
+
+                            <Link to={`/account/${user.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                                    <div style={{ width: '40px', height: '40px', background: '#ddd', borderRadius: '50%', overflow: 'hidden' }}>
+                                        {user.profile?.avatar_url ? (
+                                            <img src={user.profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {(user.display_name || user.username || '?')[0].toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: '600' }}>{user.display_name || user.username}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#888' }}>
+                                            {[user.profile?.city, user.profile?.country].filter(Boolean).join(', ')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
                         </div>
                     </div>
                 </div>

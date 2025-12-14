@@ -7,6 +7,7 @@ import (
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/config"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/dto"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/grpc/client/user"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/mapper"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
@@ -22,6 +23,7 @@ type ListingService struct {
 	storage     *s3.MediaStorage
 	txManager   pgrepo.TransactionManager
 	s3Config    config.S3Config
+	userClient  *user.Client
 }
 
 func NewListingService(
@@ -31,6 +33,7 @@ func NewListingService(
 	storage *s3.MediaStorage,
 	txManager pgrepo.TransactionManager,
 	s3Config config.S3Config,
+	userClient *user.Client,
 ) *ListingService {
 	return &ListingService{
 		listingRepo: listingRepo,
@@ -39,6 +42,7 @@ func NewListingService(
 		storage:     storage,
 		txManager:   txManager,
 		s3Config:    s3Config,
+		userClient:  userClient,
 	}
 }
 
@@ -107,7 +111,7 @@ func (s *ListingService) Create(ctx context.Context, input dto.CreateListingInpu
 	return mapper.ToListingResponse(listing, chars, nil, s.s3Config.PublicURL), nil
 }
 
-func (s *ListingService) GetByID(ctx context.Context, id uuid.UUID) (*dto.ListingResponse, error) {
+func (s *ListingService) GetByID(ctx context.Context, id uuid.UUID) (*dto.ListingWithUserResponse, error) {
 	listing, err := s.listingRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -116,11 +120,20 @@ func (s *ListingService) GetByID(ctx context.Context, id uuid.UUID) (*dto.Listin
 	media, _ := s.mediaRepo.GetByListingID(ctx, id)
 	chars, _ := s.charsRepo.GetByListingID(ctx, id)
 
+	userCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	userGrpc, err := s.userClient.GetUserByID(userCtx, listing.UserID.String())
+	if err != nil {
+		slog.Error("failed to fetch user, degrading response", "error", err)
+		userGrpc = nil
+	}
+
 	go func() {
 		_ = s.listingRepo.IncrementViews(context.Background(), id)
 	}()
 
-	return mapper.ToListingResponse(listing, chars, media, s.s3Config.PublicURL), nil
+	return mapper.ToListingWithUserResponse(listing, chars, media, userGrpc, s.s3Config.PublicURL), nil
 }
 
 func (s *ListingService) GetCategoriesTree(ctx context.Context) ([]*dto.CategoryResponse, error) {

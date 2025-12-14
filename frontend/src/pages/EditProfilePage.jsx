@@ -3,6 +3,8 @@ import { getProfile, updateProfile } from '../services/api';
 import { countries, citiesByCountry } from '../utils/countries';
 import toast from 'react-hot-toast';
 import '../styles/auth.css';
+import {useAuth} from "../context/AuthContext.jsx";
+import {useNavigate} from "react-router-dom";
 
 function EditProfilePage() {
     const [form, setForm] = useState({
@@ -16,6 +18,8 @@ function EditProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         const load = async () => {
@@ -66,6 +70,7 @@ function EditProfilePage() {
 
             await updateProfile(payload);
             toast.success('Профиль обновлён');
+            navigate(`/account/${user.id}`);
         } catch (err) {
             console.error(err);
             setError(err.message || 'Не удалось сохранить профиль');

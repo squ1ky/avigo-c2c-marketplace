@@ -43,7 +43,7 @@ const MyListingsPage = () => {
 
     const handleEdit = (id, e) => {
         e.stopPropagation();
-        navigate(`/listing/edit/${id}`);
+        navigate(`/listings/edit/${id}`);
     };
 
     const formatDate = (dateString) => {
@@ -64,7 +64,7 @@ const MyListingsPage = () => {
                 <h1 className="orders-title" style={{ margin: 0 }}>Мои Объявления 📋</h1>
                 <button
                     className="btn btn-primary"
-                    onClick={() => navigate('/create')}
+                    onClick={() => navigate('/listings/create')}
                     style={{ padding: '10px 20px', borderRadius: '8px' }}
                 >
                     + Создать
@@ -77,7 +77,7 @@ const MyListingsPage = () => {
                     <p>Самое время что-нибудь продать!</p>
                     <button
                         className="btn btn-primary"
-                        onClick={() => navigate('/create')}
+                        onClick={() => navigate('/listings/create')}
                         style={{ marginTop: '20px' }}
                     >
                         Разместить объявление
@@ -89,7 +89,7 @@ const MyListingsPage = () => {
                         <div
                             key={item.id}
                             className="order-card"
-                            onClick={() => navigate(`/listing/${item.id}`)}
+                            onClick={() => navigate(`/listings/${item.id}`)}
                             style={{ cursor: 'pointer' }}
                         >
                             <div className="order-header">

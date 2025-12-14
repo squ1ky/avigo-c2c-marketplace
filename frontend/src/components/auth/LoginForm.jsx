@@ -15,7 +15,7 @@ function LoginForm() {
     });
     const [loading, setLoading] = useState(false);
 
-    const from = location.state?.from?.pathname || '/account';
+    const savedPath = location.state?.from?.pathname;
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -32,7 +32,8 @@ function LoginForm() {
             localStorage.setItem('user', JSON.stringify(data.user));
             toast.success('Вход выполнен');
 
-            navigate(from, { replace: true });
+            const targetPath = savedPath || `/account/${data.user.id}`;
+            navigate(targetPath, { replace: true });
 
         } catch (error) {
             console.error(error);

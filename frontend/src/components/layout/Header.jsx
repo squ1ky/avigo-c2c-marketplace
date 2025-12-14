@@ -6,8 +6,8 @@ import '../../styles/header.css';
 function Header() {
     const { user } = useContext(AuthContext);
 
-    const profileLink = user ? '/account' : '/auth/login';
-    const createListingLink = user ? '/create' : '/auth/login'
+    const profileLink = user ? `/account/${user.id}` : '/auth/login';
+    const createListingLink = user ? '/listings/create' : '/auth/login';
 
     return (
         <header className="header">
@@ -143,7 +143,7 @@ function Header() {
                     <Link
                         to={createListingLink}
                         className={"btn btn-primary"}
-                        state={!user ? { from: { pathname: '/create' } } : null}>
+                        state={!user ? { from: { pathname: '/listings/create' } } : null}>
                         + Разместить объявление
                     </Link>
                 </div>

@@ -30,19 +30,19 @@ function App() {
                     <Route path="/auth/login" element={<Layout><LoginPage /></Layout>} />
                     <Route path="/auth/register" element={<Layout><RegisterPage /></Layout>} />
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />
-                    <Route path="/listing/:id" element={<Layout><ListingPage /></Layout>} />
+                    <Route path="/listings/:id" element={<Layout><ListingPage /></Layout>} />
 
                     <Route element={<ProtectedRoute />}>
-                        <Route path="/create" element={<Layout><CreateListingPage /></Layout>} />
-                        <Route path="/listing/edit/:id" element={<Layout><EditListingPage /></Layout>} />
+                        <Route path="/listings/create" element={<Layout><CreateListingPage /></Layout>} />
+                        <Route path="/listings/edit/:id" element={<Layout><EditListingPage /></Layout>} />
 
-                        <Route path="/account" element={<Layout><AccountPage /></Layout>} />
-                        <Route path="/account/edit" element={<Layout><EditProfilePage /></Layout>} />
-                        <Route path="/account/change-password" element={<Layout><ChangePasswordPage /></Layout>} />
+                        <Route path="/account/:id" element={<Layout><AccountPage /></Layout>} />
+                        <Route path="/account/:id/edit" element={<Layout><EditProfilePage /></Layout>} />
+                        <Route path="/account/:id/change-password" element={<Layout><ChangePasswordPage /></Layout>} />
 
-                        <Route path="/account/purchases" element={<Layout><MyPurchasesPage /></Layout>} />
-                        <Route path="/account/sales" element={<Layout><MySalesPage /></Layout>} />
-                        <Route path="/account/listings" element={<Layout><MyListingsPage /></Layout>} />
+                        <Route path="/account/:id/purchases" element={<Layout><MyPurchasesPage /></Layout>} />
+                        <Route path="/account/:id/sales" element={<Layout><MySalesPage /></Layout>} />
+                        <Route path="/account/:id/listings" element={<Layout><MyListingsPage /></Layout>} />
                     </Route>
                 </Routes>
             </AuthProvider>

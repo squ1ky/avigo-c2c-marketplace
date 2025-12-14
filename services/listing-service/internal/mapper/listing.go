@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"fmt"
+	userpb "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/pb/user"
 	"strings"
 	"time"
 
@@ -96,4 +97,47 @@ func ToListingResponse(
 	}
 
 	return resp
+}
+
+func ToListingWithUserResponse(
+	listing *domain.Listing,
+	chars *domain.ListingCharacteristics,
+	media []domain.ListingMedia,
+	user *userpb.User,
+	baseURL string,
+) *dto.ListingWithUserResponse {
+
+	listingResp := ToListingResponse(listing, chars, media, baseURL)
+
+	var userResp dto.UserResponse
+
+	if user != nil {
+		userID, _ := uuid.Parse(user.Id)
+
+		userResp = dto.UserResponse{
+			ID:          userID,
+			Username:    user.Username,
+			Email:       user.Email,
+			DisplayName: user.DisplayName,
+			Status:      user.Status,
+			Role:        user.Role,
+		}
+
+		if user.Profile != nil {
+			userResp.Profile = &dto.UserProfileResponse{
+				Phone:     user.Profile.Phone,
+				About:     user.Profile.About,
+				Country:   user.Profile.Country,
+				City:      user.Profile.City,
+				AvatarURL: user.Profile.AvatarUrl,
+			}
+		}
+	} else {
+		userResp.ID = listing.UserID
+	}
+
+	return &dto.ListingWithUserResponse{
+		Listing: *listingResp,
+		User:    userResp,
+	}
 }

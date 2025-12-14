@@ -95,6 +95,11 @@ export const getProfile = async () => {
     return response.data.profile;
 };
 
+export const getPublicProfile = async (userId) => {
+    const response = await api.get(`/users/${userId}/profile`);
+    return response.data.profile;
+};
+
 export const updateProfile = async (data) => {
     const response = await api.patch('/users/me/profile', data);
     return response.data.profile;

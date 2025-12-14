@@ -94,6 +94,7 @@ func main() {
 		minioRepo,
 		txManager,
 		cfg.S3,
+		userClient,
 	)
 	orderSvc := service.NewOrderService(orderRepo, listingRepo, txManager, userClient)
 	reviewSvc := service.NewReviewService(reviewRepo, orderRepo)

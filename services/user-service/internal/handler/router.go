@@ -37,6 +37,7 @@ func (r *Router) SetupRoutes(engine *gin.Engine) {
 		{
 			users.GET("/me/profile", r.userHandler.GetMyProfile)
 			users.PATCH("/me/profile", r.userHandler.UpdateMyProfile)
+			users.GET("/:id/profile", r.userHandler.GetUserProfileByID)
 		}
 	}
 }

@@ -56,6 +56,11 @@ type ListingResponse struct {
 	Media           []ListingMediaResponse `json:"media"`
 }
 
+type ListingWithUserResponse struct {
+	Listing ListingResponse `json:"listing"`
+	User    UserResponse    `json:"user"`
+}
+
 type CategoryResponse struct {
 	ID       string              `json:"id"`
 	Name     string              `json:"name"`
