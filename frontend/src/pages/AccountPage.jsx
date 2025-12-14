@@ -3,11 +3,22 @@ import { getProfile } from '../services/api';
 import '../styles/auth.css';
 import '../styles/profile.css';
 import { useNavigate } from "react-router-dom";
+import {useAuth} from "../context/AuthContext.jsx";
 
 function AccountPage() {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { logout } = useAuth();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/auth/login');
+        } catch (error) {
+            console.error('Logout error', error);
+        }
+    };
 
     const navigate = useNavigate();
 
@@ -125,6 +136,19 @@ function AccountPage() {
                             </button>
                             <button className="btn btn-secondary profile-btn" onClick={handleChangePassword}>
                                 Сменить пароль
+                            </button>
+                            <button
+                                className="btn profile-btn"
+                                onClick={handleLogout}
+                                style={{
+                                    marginTop: '0.5rem',
+                                    backgroundColor: 'white',
+                                    border: '1px solid #dc3545',
+                                    color: '#dc3545',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                Выйти
                             </button>
                         </div>
                     </div>
