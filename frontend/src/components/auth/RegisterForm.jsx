@@ -53,7 +53,6 @@ function RegisterForm() {
                     }));
                 }
             } catch (error) {
-                // Если не удалось распарсить, оставляем как есть
                 console.log('Phone parsing error:', error);
             }
         }
@@ -94,19 +93,17 @@ function RegisterForm() {
         try {
             const { confirmPassword, ...dataToSend } = formData;
 
-            // Форматируем телефон перед отправкой
             if (dataToSend.phone) {
                 try {
                     const phoneNumber = parsePhoneNumber(dataToSend.phone, 'RU');
                     if (phoneNumber && phoneNumber.isValid()) {
-                        dataToSend.phone = phoneNumber.format('E.164'); // +79991234567
+                        dataToSend.phone = phoneNumber.format('E.164');
                     }
                 } catch (error) {
                     console.log('Phone formatting error:', error);
                 }
             }
 
-            // Удаляем пустые опциональные поля
             if (!dataToSend.phone) delete dataToSend.phone;
             if (!dataToSend.country) delete dataToSend.country;
             if (!dataToSend.city) delete dataToSend.city;
@@ -115,7 +112,6 @@ function RegisterForm() {
 
             toast.success('Регистрация успешна! Проверьте email для подтверждения');
 
-            // Сохраняем userId в localStorage для страницы подтверждения
             localStorage.setItem('pendingUserId', response.user_id);
             localStorage.setItem('pendingUserEmail', response.email);
 
@@ -128,8 +124,6 @@ function RegisterForm() {
     };
 
     const passwordStrength = getPasswordStrength(formData.password);
-
-    // Список городов для выбранной страны
     const availableCities = formData.country ? citiesByCountry[formData.country] || [] : [];
 
     return (
@@ -196,7 +190,6 @@ function RegisterForm() {
                     />
                     {errors.password && <span className="form-error">{errors.password}</span>}
 
-                    {/* Индикатор силы пароля */}
                     {formData.password && (
                         <div className="password-strength">
                             <div className="password-strength-bar">

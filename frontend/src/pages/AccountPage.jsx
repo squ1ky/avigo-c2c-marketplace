@@ -7,7 +7,7 @@ import '../styles/profile.css';
 import toast from 'react-hot-toast';
 
 function AccountPage() {
-    const { id } = useParams();
+    const { userId } = useParams();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -15,16 +15,23 @@ function AccountPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const isMyProfile = user && (user.id === id || !id);
+    const isMyProfile = user && (user.id === userId || !userId);
+
+    const targetUserId = userId || (user ? user.id : null);
 
     useEffect(() => {
         const loadProfile = async () => {
+            if (!targetUserId) return;
+
+            setLoading(true);
+            setError(null);
+
             try {
                 let data;
                 if (isMyProfile) {
                     data = await getProfile();
                 } else {
-                    data = await getPublicProfile(id);
+                    data = await getPublicProfile(targetUserId);
                 }
                 setProfile(data);
             } catch (err) {
@@ -36,7 +43,7 @@ function AccountPage() {
         };
 
         loadProfile();
-    }, [id, isMyProfile]);
+    }, [targetUserId, isMyProfile]);
 
     const handleLogout = async () => {
         try {
@@ -50,9 +57,7 @@ function AccountPage() {
     const goTo = (path) => navigate(path);
 
     const formatLastLogin = () => {
-        if (!profile || !profile.last_login_at) {
-            return '';
-        }
+        if (!profile || !profile.last_login_at) return '';
         try {
             return new Date(profile.last_login_at).toLocaleString('ru-RU');
         } catch {
@@ -62,6 +67,7 @@ function AccountPage() {
 
     if (loading) return <div className="container" style={{marginTop: '2rem'}}>Загрузка...</div>;
     if (error) return <div className="container" style={{marginTop: '2rem'}}>{error}</div>;
+    if (!profile) return <div className="container" style={{marginTop: '2rem'}}>Профиль не найден</div>;
 
     return (
         <div className="auth-page">
@@ -105,11 +111,8 @@ function AccountPage() {
                                     className="btn profile-btn"
                                     onClick={handleLogout}
                                     style={{
-                                        marginTop: '0.5rem',
-                                        backgroundColor: 'white',
-                                        border: '1px solid #dc3545',
-                                        color: '#dc3545',
-                                        fontWeight: '500'
+                                        marginTop: '0.5rem', backgroundColor: 'white', border: '1px solid #dc3545',
+                                        color: '#dc3545', fontWeight: '500'
                                     }}
                                 >
                                     Выйти
@@ -126,7 +129,6 @@ function AccountPage() {
 
                     <div className="profile-details-column">
                         <h2 className="profile-section-title">Информация</h2>
-
                         <div className="profile-fields-grid">
                             <div className="profile-field">
                                 <div className="profile-field-label">О себе</div>
@@ -137,9 +139,7 @@ function AccountPage() {
                             {(isMyProfile || profile.phone) && (
                                 <div className="profile-field">
                                     <div className="profile-field-label">Телефон</div>
-                                    <div className="profile-field-value">
-                                        {profile.phone || 'Не указан'}
-                                    </div>
+                                    <div className="profile-field-value">{profile.phone || 'Не указан'}</div>
                                 </div>
                             )}
                         </div>
@@ -152,7 +152,7 @@ function AccountPage() {
                             <div className="orders-buttons-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px'}}>
 
                                 <div
-                                    onClick={() => goTo(isMyProfile ? `/account/${user.id}/listings` : `/account/${id}/listings`)}
+                                    onClick={() => goTo(`/account/${targetUserId}/listings`)}
                                     className="order-card-btn"
                                     style={{
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -166,31 +166,31 @@ function AccountPage() {
                                 </div>
 
                                 {isMyProfile && (
-                                    <div
-                                        onClick={() => goTo(`/account/${user.id}/purchases`)}
-                                        className="order-card-btn"
-                                        style={{
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                            padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '12px', cursor: 'pointer'
-                                        }}
-                                    >
-                                        <span style={{fontSize: '28px', marginBottom: '8px'}}>🛍️</span>
-                                        <span style={{fontWeight: '600', color: '#333'}}>Мои Покупки</span>
-                                    </div>
-                                )}
+                                    <>
+                                        <div
+                                            onClick={() => goTo(`/account/${user.id}/purchases`)}
+                                            className="order-card-btn"
+                                            style={{
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '12px', cursor: 'pointer'
+                                            }}
+                                        >
+                                            <span style={{fontSize: '28px', marginBottom: '8px'}}>🛍️</span>
+                                            <span style={{fontWeight: '600', color: '#333'}}>Мои Покупки</span>
+                                        </div>
 
-                                {isMyProfile && (
-                                    <div
-                                        onClick={() => goTo(`/account/${user.id}/sales`)}
-                                        className="order-card-btn"
-                                        style={{
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                            padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '12px', cursor: 'pointer'
-                                        }}
-                                    >
-                                        <span style={{fontSize: '28px', marginBottom: '8px'}}>💰</span>
-                                        <span style={{fontWeight: '600', color: '#333'}}>Мои Продажи</span>
-                                    </div>
+                                        <div
+                                            onClick={() => goTo(`/account/${user.id}/sales`)}
+                                            className="order-card-btn"
+                                            style={{
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '12px', cursor: 'pointer'
+                                            }}
+                                        >
+                                            <span style={{fontSize: '28px', marginBottom: '8px'}}>💰</span>
+                                            <span style={{fontWeight: '600', color: '#333'}}>Мои Продажи</span>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>

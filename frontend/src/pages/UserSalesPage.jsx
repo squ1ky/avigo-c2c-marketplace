@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { getMySales } from '../services/api';
+import { useParams } from 'react-router-dom';
+import { getUserSales } from '../services/api';
 import '../styles/orders.css';
 import { toast } from 'react-hot-toast';
 
-const MySalesPage = () => {
+const UserSalesPage = () => {
+    const { userId: id } = useParams();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchOrders = async () => {
+            if (!id) return;
+
             try {
-                const data = await getMySales();
+                const data = await getUserSales(id);
                 setOrders(data || []);
             } catch (error) {
                 console.error('Failed to fetch sales:', error);
@@ -21,16 +25,13 @@ const MySalesPage = () => {
         };
 
         fetchOrders();
-    }, []);
+    }, [id]);
 
     const formatDate = (dateString) => {
         try {
             return new Date(dateString).toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: 'numeric', month: 'long', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
             });
         } catch (e) {
             return dateString;
@@ -99,4 +100,4 @@ const MySalesPage = () => {
     );
 };
 
-export default MySalesPage;
+export default UserSalesPage;

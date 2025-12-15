@@ -15,7 +15,6 @@ function EmailConfirmForm() {
     const userId = localStorage.getItem('pendingUserId');
     const userEmail = localStorage.getItem('pendingUserEmail');
 
-    // Проверка наличия данных
     useEffect(() => {
         if (!userId || !userEmail) {
             toast.error('Сначала зарегистрируйтесь');
@@ -53,7 +52,6 @@ function EmailConfirmForm() {
         }
     };
 
-    // Backspace
     const handleKeyDown = (index, e) => {
         if (e.key === 'Backspace' && !code[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
@@ -72,7 +70,6 @@ function EmailConfirmForm() {
         const lastIndex = Math.min(pastedData.length, 5);
         inputRefs.current[lastIndex]?.focus();
 
-        // Автоотправка если вставили 6 цифр
         if (pastedData.length === 6) {
             handleSubmit(pastedData);
         }
@@ -93,11 +90,9 @@ function EmailConfirmForm() {
 
             toast.success('Email подтверждён! Теперь войдите в аккаунт');
 
-            // Очищаем localStorage
             localStorage.removeItem('pendingUserId');
             localStorage.removeItem('pendingUserEmail');
 
-            // Переход на страницу логина
             navigate('/auth/login');
         } catch (error) {
             toast.error(error.message || 'Неверный код');
@@ -112,9 +107,6 @@ function EmailConfirmForm() {
         if (!canResend) return;
 
         try {
-            // TODO: Добавить API метод для повторной отправки кода
-            // await resendConfirmationCode(userId);
-
             toast.success('Код отправлен повторно');
             setResendTimer(60);
             setCanResend(false);
@@ -123,7 +115,6 @@ function EmailConfirmForm() {
         }
     };
 
-    // Не показываем форму пока нет данных
     if (!isReady) {
         return null;
     }

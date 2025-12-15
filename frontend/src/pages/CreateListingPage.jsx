@@ -5,8 +5,10 @@ import ImageUploader from '../components/common/ImageUploader';
 import CategorySelect from '../components/common/CategorySelect';
 import toast from 'react-hot-toast';
 import '../styles/main.css';
+import {useAuth} from "../context/AuthContext.jsx";
 
 function CreateListingPage() {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
@@ -48,9 +50,9 @@ function CreateListingPage() {
         };
 
         try {
-            const created = await createListing(payload);
+            const created = await createListing(user.id, payload);
             toast.success('Объявление опубликовано!');
-            navigate(`/listings/${created.id}`);
+            navigate(`/account/${user.id}/listings/${created.id}`);
         } catch (error) {
             console.error(error);
             toast.error(error.message || 'Ошибка создания');

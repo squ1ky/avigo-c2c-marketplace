@@ -7,13 +7,13 @@ function Header() {
     const { user } = useContext(AuthContext);
 
     const profileLink = user ? `/account/${user.id}` : '/auth/login';
-    const createListingLink = user ? '/listings/create' : '/auth/login';
+    const createListingLink = user ? `/account/${user.id}/listings/create` : '/auth/login';
 
     return (
         <header className="header">
             <nav className="navbar">
                 <Link to="/" className="logo">
-                    <span className="logo-avi">Avi</span>
+                <span className="logo-avi">Avi</span>
                     <span className="logo-go">Go</span>
                     <img
                         src="/assets/images/gopher.png"
@@ -143,7 +143,7 @@ function Header() {
                     <Link
                         to={createListingLink}
                         className={"btn btn-primary"}
-                        state={!user ? { from: { pathname: '/listings/create' } } : null}>
+                        state={!user ? { from: { pathname: '/auth/login' } } : null}>
                         + Разместить объявление
                     </Link>
                 </div>

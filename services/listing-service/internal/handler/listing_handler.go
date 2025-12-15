@@ -9,13 +9,13 @@ import (
 )
 
 func (h *Handler) initListingRoutes(api *gin.RouterGroup) {
-	listings := api.Group("/listings")
+	listings := api.Group("/account/:user_id/listings")
 	{
 		listings.POST("", h.createListing)
-		listings.GET("/my", h.getMyListings)
-		listings.GET("/:id", h.getListing)
-		listings.PUT("/:id", h.updateListing)
-		listings.DELETE("/:id", h.deleteListing)
+		listings.GET("", h.getUserListings)
+		listings.GET("/:listing_id", h.getListing)
+		listings.PUT("/:listing_id", h.updateListing)
+		listings.DELETE("/:listing_id", h.deleteListing)
 	}
 
 	categories := api.Group("/categories")
@@ -48,7 +48,7 @@ func (h *Handler) createListing(c *gin.Context) {
 }
 
 func (h *Handler) getListing(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("listing_id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		badRequest(c, "INVALID_ID", err)
@@ -64,9 +64,10 @@ func (h *Handler) getListing(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) getMyListings(c *gin.Context) {
-	userID, ok := getUserIDFromHeader(c)
-	if !ok {
+func (h *Handler) getUserListings(c *gin.Context) {
+	targetUserID, err := h.getTargetUserID(c)
+	if err != nil {
+		badRequest(c, "INVALID_USER_ID", err)
 		return
 	}
 
@@ -87,7 +88,7 @@ func (h *Handler) getMyListings(c *gin.Context) {
 		}
 	}
 
-	resp, err := h.listingSvc.GetUserListings(c.Request.Context(), userID, limit, offset)
+	resp, err := h.listingSvc.GetUserListings(c.Request.Context(), targetUserID, limit, offset)
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -112,7 +113,7 @@ func (h *Handler) updateListing(c *gin.Context) {
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("listing_id")
 	listingID, err := uuid.Parse(idStr)
 	if err != nil {
 		badRequest(c, "INVALID_ID", err)
@@ -143,7 +144,7 @@ func (h *Handler) deleteListing(c *gin.Context) {
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("listing_id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		badRequest(c, "INVALID_ID", err)

@@ -5,10 +5,10 @@ import ImageUploader from '../components/common/ImageUploader';
 import CategorySelect from '../components/common/CategorySelect';
 import toast from 'react-hot-toast';
 import '../styles/main.css';
-import {useAuth} from "../context/AuthContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 function EditListingPage() {
-    const { id } = useParams();
+    const { userId, listingId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -25,8 +25,10 @@ function EditListingPage() {
 
     useEffect(() => {
         const fetchListing = async () => {
+            if (!userId || !listingId) return;
+
             try {
-                const response = await getListing(id);
+                const response = await getListing(userId, listingId);
                 const listing = response.listing;
 
                 setFormData({
@@ -46,10 +48,8 @@ function EditListingPage() {
             }
         };
 
-        if (id) {
-            fetchListing();
-        }
-    }, [id, navigate]);
+        fetchListing();
+    }, [userId, listingId, navigate, user?.id]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -80,9 +80,9 @@ function EditListingPage() {
         };
 
         try {
-            await updateListing(id, payload);
+            await updateListing(userId, listingId, payload);
             toast.success('Объявление обновлено!');
-            navigate(`/listings/${id}`);
+            navigate(`/account/${userId}/listings/${listingId}`);
         } catch (error) {
             console.error(error);
             toast.error(error.message || 'Ошибка обновления');
@@ -92,7 +92,7 @@ function EditListingPage() {
     };
 
     if (loading) {
-        return <div className="container" style={{marginTop: '2rem', textAlign: 'center'}}>Загрузка...</div>;
+        return <div className="container" style={{ marginTop: '2rem', textAlign: 'center' }}>Загрузка...</div>;
     }
 
     return (
@@ -102,7 +102,7 @@ function EditListingPage() {
             <form onSubmit={handleSubmit} className="auth-form" style={{ maxWidth: '100%' }}>
 
                 <div className="form-group">
-                    <label className="form-label">Категория <span style={{color: 'red'}}>*</span></label>
+                    <label className="form-label">Категория <span style={{ color: 'red' }}>*</span></label>
                     <CategorySelect
                         value={formData.category_id}
                         onChange={handleCategoryChange}
@@ -125,7 +125,7 @@ function EditListingPage() {
 
                 <div className="form-group">
                     <label className="form-label">Фотографии</label>
-                    <div style={{marginBottom: '10px', fontSize: '0.9em', color: '#666'}}>
+                    <div style={{ marginBottom: '10px', fontSize: '0.9em', color: '#666' }}>
                         Загрузите новые фото, которые будут добавлены к старым.
                     </div>
                     <ImageUploader
@@ -176,8 +176,8 @@ function EditListingPage() {
                     </div>
                 </div>
 
-                <div style={{display: 'flex', gap: '1rem'}}>
-                    <button type="submit" className="btn btn-primary btn-large" disabled={saving} style={{flex: 1}}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button type="submit" className="btn btn-primary btn-large" disabled={saving} style={{ flex: 1 }}>
                         {saving ? 'Сохранение...' : 'Сохранить изменения'}
                     </button>
                     <button

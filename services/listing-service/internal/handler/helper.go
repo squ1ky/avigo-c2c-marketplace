@@ -1,10 +1,25 @@
 package handler
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
 )
+
+func (h *Handler) getTargetUserID(c *gin.Context) (uuid.UUID, error) {
+	idStr := c.Param("user_id")
+	if idStr == "" {
+		return uuid.Nil, errors.New("empy user id")
+	}
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return uuid.Nil, errors.New("invalid uuid format")
+	}
+
+	return id, nil
+}
 
 func getUserIDFromHeader(c *gin.Context) (uuid.UUID, bool) {
 	idStr := c.GetHeader("X-User-ID")

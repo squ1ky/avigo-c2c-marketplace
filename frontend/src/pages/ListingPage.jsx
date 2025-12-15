@@ -4,8 +4,7 @@ import { getListing } from '../services/api';
 import toast from 'react-hot-toast';
 
 function ListingPage() {
-
-    const { id } = useParams();
+    const { userId, listingId } = useParams();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -13,25 +12,28 @@ function ListingPage() {
 
     useEffect(() => {
         const fetchListing = async () => {
+            if (!userId || !listingId) return;
+
             try {
-                const response = await getListing(id);
+                const response = await getListing(userId, listingId);
                 setData(response);
             } catch (error) {
+                console.error(error);
                 toast.error('Не удалось загрузить объявление');
             } finally {
                 setLoading(false);
             }
         };
         fetchListing();
-    }, [id]);
+    }, [userId, listingId]);
 
     const getImageUrl = (url) => {
         if (!url) return '/assets/images/placeholder.jpg';
         return url;
     };
 
-    if (loading) return <div className="container">Загрузка...</div>;
-    if (!data) return <div className="container">Объявление не найдено</div>;
+    if (loading) return <div className="container" style={{ marginTop: '2rem' }}>Загрузка...</div>;
+    if (!data) return <div className="container" style={{ marginTop: '2rem' }}>Объявление не найдено</div>;
 
     const { listing, user } = data;
 

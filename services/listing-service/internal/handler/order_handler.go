@@ -6,20 +6,29 @@ import (
 )
 
 func (h *Handler) initOrderRoutes(api *gin.RouterGroup) {
-	orders := api.Group("/orders")
+	orders := api.Group("/account/:user_id/orders")
 	{
-		orders.GET("/purchases", h.getMyPurchases)
-		orders.GET("/sales", h.getMySales)
+		orders.GET("/purchases", h.getUserPurchases)
+		orders.GET("/sales", h.getUserSales)
 	}
 }
 
-func (h *Handler) getMyPurchases(c *gin.Context) {
-	userID, ok := getUserIDFromHeader(c)
-	if !ok {
+func (h *Handler) getUserPurchases(c *gin.Context) {
+	targetUserID, err := h.getTargetUserID(c)
+	if err != nil {
+		badRequest(c, "INVALID_USER_ID", err)
 		return
 	}
 
-	resp, err := h.orderSvc.GetUserOrders(c.Request.Context(), userID, false)
+	requesterID, ok := getUserIDFromHeader(c)
+	if !ok || requesterID != targetUserID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Access denied",
+		})
+		return
+	}
+
+	resp, err := h.orderSvc.GetUserOrders(c.Request.Context(), targetUserID, false)
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -28,13 +37,22 @@ func (h *Handler) getMyPurchases(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) getMySales(c *gin.Context) {
-	userID, ok := getUserIDFromHeader(c)
-	if !ok {
+func (h *Handler) getUserSales(c *gin.Context) {
+	targetUserID, err := h.getTargetUserID(c)
+	if err != nil {
+		badRequest(c, "INVALID_USER_ID", err)
 		return
 	}
 
-	resp, err := h.orderSvc.GetUserOrders(c.Request.Context(), userID, true)
+	requesterID, ok := getUserIDFromHeader(c)
+	if !ok || requesterID != targetUserID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Access denied",
+		})
+		return
+	}
+
+	resp, err := h.orderSvc.GetUserOrders(c.Request.Context(), targetUserID, true)
 	if err != nil {
 		_ = c.Error(err)
 		return

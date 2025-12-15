@@ -22,7 +22,7 @@ function Footer() {
                     {/* О компании */}
                     <div className="footer-section footer-about">
                         <div className="logo">
-                            <span className="logo-avi">Avito</span>
+                            <span className="logo-avi">Avi</span>
                             <span className="logo-go">Go</span>
                         </div>
                         <p className="footer-description">

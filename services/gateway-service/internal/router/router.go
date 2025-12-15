@@ -26,28 +26,24 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 
 	v1 := router.Group("/api/v1")
 	{
+		userProxy := proxy.ReverseProxy(cfg.Services.UserServiceURL)
+		listingProxy := proxy.ReverseProxy(cfg.Services.ListingServiceURL)
+		orderProxy := listingProxy
+
 		auth := v1.Group("/auth")
 		{
-			userProxy := proxy.ReverseProxy(cfg.Services.UserServiceURL)
 			auth.POST("/register", userProxy)
 			auth.POST("/login", userProxy)
 			auth.POST("/confirm-email", userProxy)
 		}
 
-		listingProxy := proxy.ReverseProxy(cfg.Services.ListingServiceURL)
-		orderProxy := listingProxy
-		publicListings := v1.Group("/listings")
-		{
-			publicListings.GET("/:id", listingProxy)
-		}
 		v1.GET("/categories", listingProxy)
+		v1.GET("/account/:user_id/listings", listingProxy)
+		v1.GET("/account/:user_id/listings/:listing_id", listingProxy)
 
-		// JWT require
 		protected := v1.Group("")
 		protected.Use(middleware.JWTMiddleware(cfg.JWT.Secret))
 		{
-			userProxy := proxy.ReverseProxy(cfg.Services.UserServiceURL)
-
 			authProtected := protected.Group("/auth")
 			{
 				authProtected.POST("/logout", userProxy)
@@ -63,18 +59,14 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 				usersProtected.GET("/:id/profile", userProxy)
 			}
 
-			listingsProtected := protected.Group("/listings")
+			accountProtected := protected.Group("/account/:user_id")
 			{
-				listingsProtected.GET("/my", listingProxy)
-				listingsProtected.POST("", listingProxy)
-				listingsProtected.PUT("/:id", listingProxy)
-				listingsProtected.DELETE("/:id", listingProxy)
-			}
+				accountProtected.POST("/listings", listingProxy)
+				accountProtected.PUT("/listings/:listing_id", listingProxy)
+				accountProtected.DELETE("/listings/:listing_id", listingProxy)
 
-			ordersProtected := protected.Group("/orders")
-			{
-				ordersProtected.GET("/purchases", orderProxy)
-				ordersProtected.GET("/sales", orderProxy)
+				accountProtected.GET("/orders/purchases", orderProxy)
+				accountProtected.GET("/orders/sales", orderProxy)
 			}
 
 			mediaProtected := protected.Group("/media")

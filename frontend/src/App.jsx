@@ -15,9 +15,9 @@ import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 import CreateListingPage from "./pages/CreateListingPage.jsx";
 import ListingPage from "./pages/ListingPage.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
-import MySalesPage from "./pages/MySalesPage.jsx";
-import MyPurchasesPage from "./pages/MyPurchasesPage.jsx";
-import MyListingsPage from "./pages/MyListingsPage.jsx";
+import UserSalesPage from "./pages/UserSalesPage.jsx";
+import UserPurchasesPage from "./pages/UserPurchasesPage.jsx";
+import UserListingsPage from "./pages/UserListingsPage.jsx";
 import EditListingPage from "./pages/EditListingPage.jsx";
 
 function App() {
@@ -30,19 +30,20 @@ function App() {
                     <Route path="/auth/login" element={<Layout><LoginPage /></Layout>} />
                     <Route path="/auth/register" element={<Layout><RegisterPage /></Layout>} />
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />
-                    <Route path="/listings/:id" element={<Layout><ListingPage /></Layout>} />
+
+                    <Route path="/account/:userId/listings/:listingId" element={<Layout><ListingPage /></Layout>} />
 
                     <Route element={<ProtectedRoute />}>
-                        <Route path="/listings/create" element={<Layout><CreateListingPage /></Layout>} />
-                        <Route path="/listings/edit/:id" element={<Layout><EditListingPage /></Layout>} />
+                        <Route path="/account/:userId/listings/create" element={<Layout><CreateListingPage /></Layout>} />
+                        <Route path="/account/:userId/listings/:listingId/edit" element={<Layout><EditListingPage /></Layout>} />
 
-                        <Route path="/account/:id" element={<Layout><AccountPage /></Layout>} />
-                        <Route path="/account/:id/edit" element={<Layout><EditProfilePage /></Layout>} />
-                        <Route path="/account/:id/change-password" element={<Layout><ChangePasswordPage /></Layout>} />
+                        <Route path="/account/:userId" element={<Layout><AccountPage /></Layout>} />
+                        <Route path="/account/:userId/edit" element={<Layout><EditProfilePage /></Layout>} />
+                        <Route path="/account/:userId/change-password" element={<Layout><ChangePasswordPage /></Layout>} />
 
-                        <Route path="/account/:id/purchases" element={<Layout><MyPurchasesPage /></Layout>} />
-                        <Route path="/account/:id/sales" element={<Layout><MySalesPage /></Layout>} />
-                        <Route path="/account/:id/listings" element={<Layout><MyListingsPage /></Layout>} />
+                        <Route path="/account/:userId/purchases" element={<Layout><UserPurchasesPage /></Layout>} />
+                        <Route path="/account/:userId/sales" element={<Layout><UserSalesPage /></Layout>} />
+                        <Route path="/account/:userId/listings" element={<Layout><UserListingsPage /></Layout>} />
                     </Route>
                 </Routes>
             </AuthProvider>

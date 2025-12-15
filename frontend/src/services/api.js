@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
-    withCredentials: true,  // Send cookies with request
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -24,11 +24,7 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         const status = error.response?.status;
-        const msg = (
-            error.response?.data?.error ||
-            error.message ||
-            ''
-        ).toLowerCase();
+        const msg = (error.response?.data?.error || error.message || '').toLowerCase();
 
         const isAuthError =
             status === 401 ||
@@ -39,9 +35,7 @@ api.interceptors.response.use(
         if (isAuthError) {
             if (!window.location.pathname.includes('/auth/login')) {
                 localStorage.removeItem('user');
-
                 window.location.href = '/auth/login';
-
                 return new Promise(() => {});
             }
         }
@@ -55,7 +49,7 @@ api.interceptors.response.use(
     }
 );
 
-// === API ===
+// === Auth ===
 
 export const register = async (data) => {
     const response = await api.post('/auth/register', data);
@@ -113,35 +107,34 @@ export const changePassword = async (currentPassword, newPassword) => {
     return response.data;
 };
 
-// === Media (Listing Service) ===
+// === Media ===
 
 export const uploadMedia = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-
     const response = await api.post('/media/upload', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return response.data; // { id: "uuid", url: "..." }
+    return response.data;
 };
 
 // === Listings ===
 
-export const createListing = async (data) => {
-    // data: { title, description, price, category_id, media_ids: [], ... }
-    const response = await api.post('/listings', data);
+export const createListing = async (userId, data) => {
+    if (!userId) throw new Error("User ID is required for creating listing");
+    const response = await api.post(`/account/${userId}/listings`, data);
     return response.data;
 };
 
-export const getListing = async (id) => {
-    const response = await api.get(`/listings/${id}`);
+export const getListing = async (userId, listingId) => {
+    if (!userId) throw new Error("User ID is required to fetch listing details");
+    const response = await api.get(`/account/${userId}/listings/${listingId}`);
     return response.data;
 };
 
-export const getMyListings = async () => {
-    const response = await api.get('/listings/my');
+export const getUserListings = async (userId, params = {}) => {
+    if (!userId) return [];
+    const response = await api.get(`/account/${userId}/listings`, { params });
     return response.data;
 };
 
@@ -150,23 +143,25 @@ export const getCategories = async () => {
     return response.data;
 };
 
-export const updateListing = async (id, data) => {
-    const response = await api.put(`/listings/${id}`, data);
+export const updateListing = async (userId, listingId, data) => {
+    const response = await api.put(`/account/${userId}/listings/${listingId}`, data);
     return response.data;
 };
 
-export const deleteListing = async (id) => {
-    await api.delete(`/listings/${id}`);
+export const deleteListing = async (userId, listingId) => {
+    await api.delete(`/account/${userId}/listings/${listingId}`);
 };
 
-// === Orders (Purchases & Sales) ===
+// === Orders ===
 
-export const getMyPurchases = async () => {
-    const response = await api.get('/orders/purchases');
+export const getUserPurchases = async (userId) => {
+    if (!userId) return [];
+    const response = await api.get(`/account/${userId}/orders/purchases`);
     return response.data;
 };
 
-export const getMySales = async () => {
-    const response = await api.get('/orders/sales');
+export const getUserSales = async (userId) => {
+    if (!userId) return [];
+    const response = await api.get(`/account/${userId}/orders/sales`);
     return response.data;
 };
