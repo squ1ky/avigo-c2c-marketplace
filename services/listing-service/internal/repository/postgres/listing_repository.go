@@ -76,6 +76,36 @@ func (r *ListingRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.
 	return &listing, nil
 }
 
+func (r *ListingRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]*domain.Listing, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(`
+       SELECT id, user_id, category_id, title, description, price, currency, status, views_count, is_sold, created_at, updated_at
+       FROM listings
+       WHERE id IN (?)
+    `, ids)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+
+	query = r.db.Rebind(query)
+
+	var listings []domain.Listing
+	if err := r.db.SelectContext(ctx, &listings, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to fetch listings batch: %w", err)
+	}
+
+	result := make(map[uuid.UUID]*domain.Listing)
+	for i := range listings {
+		result[listings[i].ID] = &listings[i]
+	}
+
+	return result, nil
+}
+
 func (r *ListingRepository) Update(ctx context.Context, listing *domain.Listing) error {
 	query := `
 		UPDATE listings

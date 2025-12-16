@@ -96,7 +96,7 @@ func main() {
 		cfg.S3,
 		userClient,
 	)
-	orderSvc := service.NewOrderService(orderRepo, listingRepo, txManager, userClient)
+	orderSvc := service.NewOrderService(orderRepo, listingRepo, mediaRepo, txManager, cfg.S3, userClient)
 	reviewSvc := service.NewReviewService(reviewRepo, orderRepo)
 
 	h := handler.NewHandler(listingSvc, orderSvc, reviewSvc, mediaSvc)

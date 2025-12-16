@@ -56,6 +56,14 @@ type ListingResponse struct {
 	Media           []ListingMediaResponse `json:"media"`
 }
 
+type ListingShortResponse struct {
+	ID       uuid.UUID              `json:"id"`
+	Title    string                 `json:"title"`
+	Price    float64                `json:"price"`
+	Currency domain.Currency        `json:"currency"`
+	Media    []ListingMediaResponse `json:"media"`
+}
+
 type ListingWithUserResponse struct {
 	Listing ListingResponse `json:"listing"`
 	User    UserResponse    `json:"user"`

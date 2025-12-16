@@ -69,6 +69,14 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 				accountProtected.GET("/orders/sales", orderProxy)
 			}
 
+			ordersProtected := protected.Group("/orders")
+			{
+				ordersProtected.POST("", orderProxy)
+				ordersProtected.POST("/:order_id/confirm", orderProxy)
+				ordersProtected.POST("/:order_id/complete", orderProxy)
+				ordersProtected.POST("/:order_id/cancel", orderProxy)
+			}
+
 			mediaProtected := protected.Group("/media")
 			{
 				mediaProtected.POST("/upload", listingProxy)

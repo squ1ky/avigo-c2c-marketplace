@@ -18,6 +18,9 @@ const errorMessages = {
     'USER_ALREADY_VERIFIED': 'Email уже подтверждён',
     'VALIDATION_FAILED': 'Ошибка валидации данных',
     'INTERNAL_ERROR': 'Внутренняя ошибка сервера',
+    'LISTING_ALREADY_SOLD': 'Товар уже продан',
+    'SELF_PURCHASE_FORBIDDEN': 'Нельзя купить свой товар',
+    'LISTING_NOT_ACTIVE': 'Объявление не активно',
 };
 
 api.interceptors.response.use(
@@ -163,5 +166,25 @@ export const getUserPurchases = async (userId) => {
 export const getUserSales = async (userId) => {
     if (!userId) return [];
     const response = await api.get(`/account/${userId}/orders/sales`);
+    return response.data;
+};
+
+export const createOrder = async (listingId) => {
+    const response = await api.post('/orders', { listing_id: listingId });
+    return response.data;
+};
+
+export const confirmOrder = async (orderId) => {
+    const response = await api.post(`/orders/${orderId}/confirm`);
+    return response.data;
+};
+
+export const completeOrder = async (orderId) => {
+    const response = await api.post(`/orders/${orderId}/complete`);
+    return response.data;
+};
+
+export const cancelOrder = async (orderId, reason = "") => {
+    const response = await api.post(`/orders/${orderId}/cancel`, { reason });
     return response.data;
 };

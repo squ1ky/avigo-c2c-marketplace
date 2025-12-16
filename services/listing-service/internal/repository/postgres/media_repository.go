@@ -78,6 +78,37 @@ func (r *MediaRepository) GetByListingID(ctx context.Context, listingID uuid.UUI
 	return media, nil
 }
 
+func (r *MediaRepository) GetMediaByListingIDs(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID][]domain.ListingMedia, error) {
+	if len(listingIDs) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(`
+       SELECT id, listing_id, file_url, file_type, mime_type, "order", created_at
+       FROM listing_media
+       WHERE listing_id IN (?)
+       ORDER BY listing_id, "order" ASC
+    `, listingIDs)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare query: %w", err)
+	}
+
+	query = r.db.Rebind(query)
+
+	var rows []domain.ListingMedia
+	if err := r.db.SelectContext(ctx, &rows, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to fetch listing media batch: %w", err)
+	}
+
+	result := make(map[uuid.UUID][]domain.ListingMedia)
+	for _, m := range rows {
+		result[m.ListingID] = append(result[m.ListingID], m)
+	}
+
+	return result, nil
+}
+
 func (r *MediaRepository) UpdateOrder(ctx context.Context, mediaID uuid.UUID, order int) error {
 	query := `UPDATE listing_media SET order = $1 WHERE id = $2`
 	_, err := r.getQueryer(ctx).ExecContext(ctx, query, order, mediaID)

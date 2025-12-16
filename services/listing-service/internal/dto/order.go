@@ -7,12 +7,10 @@ import (
 )
 
 type OrderResponse struct {
-	ID        uuid.UUID          `json:"id"`
-	ListingID uuid.UUID          `json:"listing_id"`
-	Status    domain.OrderStatus `json:"status"`
-	CreatedAt time.Time          `json:"created_at"`
-
-	CounterpartyID   uuid.UUID `json:"counterparty_id"`
-	CounterpartyName string    `json:"counterparty_name"`
-	CounterpartyImg  string    `json:"counterparty_img"`
+	ID           uuid.UUID            `json:"id"`
+	Status       domain.OrderStatus   `json:"status"`
+	CreatedAt    time.Time            `json:"created_at"`
+	UpdatedAt    time.Time            `json:"updated_at"`
+	Listing      ListingShortResponse `json:"listing"`
+	Counterparty UserResponse         `json:"counterparty"`
 }

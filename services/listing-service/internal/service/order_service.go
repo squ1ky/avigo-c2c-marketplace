@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/config"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/dto"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/grpc/client/user"
@@ -31,20 +32,26 @@ var (
 type OrderService struct {
 	orderRepo   *pgrepo.OrderRepository
 	listingRepo *pgrepo.ListingRepository
+	mediaRepo   *pgrepo.MediaRepository
 	txManager   pgrepo.TransactionManager
+	s3Config    config.S3Config
 	userClient  *user.Client
 }
 
 func NewOrderService(
 	orderRepo *pgrepo.OrderRepository,
 	listingRepo *pgrepo.ListingRepository,
+	mediaRepo *pgrepo.MediaRepository,
 	txManager pgrepo.TransactionManager,
+	s3Config config.S3Config,
 	userClient *user.Client,
 ) *OrderService {
 	return &OrderService{
 		orderRepo:   orderRepo,
 		listingRepo: listingRepo,
+		mediaRepo:   mediaRepo,
 		txManager:   txManager,
+		s3Config:    s3Config,
 		userClient:  userClient,
 	}
 }
@@ -186,21 +193,41 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uuid.UUID, isSe
 	}
 
 	userIDs := make([]string, 0, len(orders))
+	listingIDs := make([]uuid.UUID, 0, len(orders))
 	for _, order := range orders {
 		otherID := order.SellerID
 		if isSeller {
 			otherID = order.BuyerID
 		}
 		userIDs = append(userIDs, otherID.String())
+		listingIDs = append(listingIDs, order.ListingID)
 	}
 
 	usersMap, err := s.userClient.GetUsersByID(ctx, userIDs)
 	if err != nil {
-		slog.Warn("warning: user service unavailable: %v\n", err)
+		slog.Warn("user service unavailable", "error", err)
 		usersMap = make(map[string]*userpb.User)
 	}
 
-	responses := mapper.OrdersToResponses(orders, usersMap, isSeller)
+	listingsMap, err := s.listingRepo.GetByIDs(ctx, listingIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch listings: %w", err)
+	}
+
+	mediaMap, err := s.mediaRepo.GetMediaByListingIDs(ctx, listingIDs)
+	if err != nil {
+		slog.Warn("failed to fetch media batch", "error", err)
+		mediaMap = make(map[uuid.UUID][]domain.ListingMedia)
+	}
+
+	responses := mapper.OrdersToResponses(
+		orders,
+		usersMap,
+		isSeller,
+		listingsMap,
+		mediaMap,
+		s.s3Config.PublicURL,
+	)
 
 	return responses, nil
 }
