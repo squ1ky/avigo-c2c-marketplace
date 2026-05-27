@@ -147,10 +147,21 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      ml-service:
+        condition: service_started
     env_file:
       - ./services/listing-service/.env
     ports:
       - "8082:8082"
+
+  ml-service:
+    build:
+      context: ./services/ml-service
+      dockerfile: Dockerfile
+    container_name: ml-service
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
 
   notification-service:
     build:

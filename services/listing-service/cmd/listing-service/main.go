@@ -8,6 +8,7 @@ import (
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/handler"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/llm"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/middleware"
+	mlclient "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/ml"
 	mngrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
 	pgrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/s3"
@@ -89,7 +90,9 @@ func main() {
 
 	mediaSvc := service.NewMediaService(minioRepo, mediaRepo, cfg.S3)
 	geminiClient := llm.NewGeminiClient(cfg.Gemini)
-	tagSuggestionSvc := service.NewTagSuggestionService(geminiClient, listingRepo)
+	mlClient := mlclient.NewClient(cfg.MLService)
+	tagProvider := service.NewFallbackTagSuggestionProvider(mlClient, geminiClient)
+	tagSuggestionSvc := service.NewTagSuggestionService(tagProvider, listingRepo)
 	listingSvc := service.NewListingService(
 		listingRepo,
 		mediaRepo,

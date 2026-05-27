@@ -26,3 +26,4 @@ tmp/
 
 /frontend/node_modules
 /frontend/dist
+/services/ml-service/models

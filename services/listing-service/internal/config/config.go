@@ -11,13 +11,14 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig   `mapstructure:"server"`
-	UserService UserService    `mapstructure:"user_service"`
-	Postgres    PostgresConfig `mapstructure:"postgres"`
-	MongoDB     MongoConfig    `mapstructure:"mongodb"`
-	S3          S3Config       `mapstructure:"s3"`
-	Kafka       KafkaConfig    `mapstructure:"kafka"`
-	Gemini      GeminiConfig   `mapstructure:"gemini"`
+	Server      ServerConfig    `mapstructure:"server"`
+	UserService UserService     `mapstructure:"user_service"`
+	Postgres    PostgresConfig  `mapstructure:"postgres"`
+	MongoDB     MongoConfig     `mapstructure:"mongodb"`
+	S3          S3Config        `mapstructure:"s3"`
+	Kafka       KafkaConfig     `mapstructure:"kafka"`
+	Gemini      GeminiConfig    `mapstructure:"gemini"`
+	MLService   MLServiceConfig `mapstructure:"ml_service"`
 }
 
 type ServerConfig struct {
@@ -93,6 +94,11 @@ type GeminiConfig struct {
 	Timeout time.Duration `mapstructure:"timeout"`
 }
 
+type MLServiceConfig struct {
+	URL     string        `mapstructure:"url"`
+	Timeout time.Duration `mapstructure:"timeout"`
+}
+
 func Load() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
@@ -165,6 +171,10 @@ func Load() (*Config, error) {
 			Model:   viper.GetString("GEMINI_MODEL"),
 			Timeout: viper.GetDuration("GEMINI_TIMEOUT"),
 		},
+		MLServiceConfig{
+			URL:     viper.GetString("ML_SERVICE_URL"),
+			Timeout: viper.GetDuration("ML_SERVICE_TIMEOUT"),
+		},
 	}
 
 	if err := validateConfig(cfg); err != nil {
@@ -217,6 +227,9 @@ func setDefaults() {
 	viper.SetDefault("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com")
 	viper.SetDefault("GEMINI_MODEL", "gemini-2.5-flash")
 	viper.SetDefault("GEMINI_TIMEOUT", 10*time.Second)
+
+	viper.SetDefault("ML_SERVICE_URL", "http://ml-service:8091")
+	viper.SetDefault("ML_SERVICE_TIMEOUT", 3*time.Second)
 }
 
 func validateConfig(cfg *Config) error {

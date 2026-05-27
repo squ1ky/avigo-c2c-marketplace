@@ -22,6 +22,33 @@ type TagSuggestionProvider interface {
 	SuggestTags(ctx context.Context, input llm.TagSuggestionRequest) ([]string, error)
 }
 
+type FallbackTagSuggestionProvider struct {
+	primary  TagSuggestionProvider
+	fallback TagSuggestionProvider
+}
+
+func NewFallbackTagSuggestionProvider(primary, fallback TagSuggestionProvider) *FallbackTagSuggestionProvider {
+	return &FallbackTagSuggestionProvider{
+		primary:  primary,
+		fallback: fallback,
+	}
+}
+
+func (p *FallbackTagSuggestionProvider) SuggestTags(ctx context.Context, input llm.TagSuggestionRequest) ([]string, error) {
+	if p.primary != nil {
+		tags, err := p.primary.SuggestTags(ctx, input)
+		if err == nil && len(tags) > 0 {
+			return tags, nil
+		}
+	}
+
+	if p.fallback != nil {
+		return p.fallback.SuggestTags(ctx, input)
+	}
+
+	return nil, ErrTagSuggestionsNotConfigured
+}
+
 type TagSuggestionService struct {
 	provider    TagSuggestionProvider
 	listingRepo *pgrepo.ListingRepository
@@ -49,7 +76,7 @@ func (s *TagSuggestionService) Suggest(ctx context.Context, input dto.SuggestTag
 		categoryID, err := uuid.Parse(input.CategoryID)
 		if err == nil {
 			if category, err := s.listingRepo.GetCategoryByID(ctx, categoryID); err == nil && category != nil {
-				categoryName = category.Name
+				categoryName = category.Slug
 			}
 		}
 	}
