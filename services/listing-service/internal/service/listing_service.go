@@ -49,6 +49,7 @@ func NewListingService(
 func (s *ListingService) Create(ctx context.Context, input dto.CreateListingInput) (*dto.ListingResponse, error) {
 	listingID := uuid.New()
 	now := time.Now()
+	input.Tags = normalizeTags(input.Tags, 20)
 
 	listing := mapper.ToDomainListing(input, listingID, now)
 	chars := mapper.ToDomainCharacteristics(input, listingID, now)
@@ -205,6 +206,32 @@ func (s *ListingService) GetUserListings(ctx context.Context, userID uuid.UUID, 
 	return responses, nil
 }
 
+func (s *ListingService) GetCatalogListings(ctx context.Context, limit, offset int) ([]dto.ListingResponse, error) {
+	listings, err := s.listingRepo.GetAllActive(ctx, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch catalog listings: %w", err)
+	}
+
+	responses := make([]dto.ListingResponse, 0, len(listings))
+	for _, listing := range listings {
+		var mediaList []domain.ListingMedia
+
+		if listing.MainImage != "" {
+			mediaList = append(mediaList, domain.ListingMedia{
+				ListingID: listing.ID,
+				FileURL:   listing.MainImage,
+				FileType:  domain.MediaTypeImage,
+				Order:     0,
+			})
+		}
+
+		resp := mapper.ToListingResponse(&listing.Listing, nil, mediaList, s.s3Config.PublicURL)
+		responses = append(responses, *resp)
+	}
+
+	return responses, nil
+}
+
 // Update verifies user permissions, then compiles a final list of media files
 // by merging existing (already attached) and new (from temp storage) files, arranging them in the client-specified order.
 func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInput) (*dto.ListingResponse, error) {
@@ -282,6 +309,8 @@ func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInpu
 	existing.Currency = input.Currency
 	existing.CategoryID = input.CategoryID
 	existing.UpdatedAt = time.Now()
+	input.Tags = normalizeTags(input.Tags, 20)
+	chars := mapper.ToDomainCharacteristicsFromUpdate(input, existing.UpdatedAt)
 
 	err = s.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
 		if err := s.listingRepo.Update(txCtx, existing); err != nil {
@@ -310,6 +339,10 @@ func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInpu
 		return nil, err
 	}
 
+	if err := s.charsRepo.Upsert(ctx, chars); err != nil {
+		return nil, fmt.Errorf("failed to update listing characteristics: %w", err)
+	}
+
 	var keysToDelete []string
 	for key := range oldKeysMap {
 		if !keptKeys[key] {
@@ -321,7 +354,7 @@ func (s *ListingService) Update(ctx context.Context, input dto.UpdateListingInpu
 		go s.storage.DeleteFiles(context.Background(), keysToDelete)
 	}
 
-	return mapper.ToListingResponse(existing, nil, finalMediaList, s.s3Config.PublicURL), nil
+	return mapper.ToListingResponse(existing, chars, finalMediaList, s.s3Config.PublicURL), nil
 }
 
 func (s *ListingService) Delete(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
@@ -361,7 +394,7 @@ func (s *ListingService) Delete(ctx context.Context, id uuid.UUID, userID uuid.U
 
 		go func() {
 			if err := s.storage.DeleteFiles(context.Background(), keys); err != nil {
-				slog.Warn("failed to cleanup s3 files: %v", err)
+				slog.Warn("failed to cleanup s3 files", "error", err)
 			}
 		}()
 	}

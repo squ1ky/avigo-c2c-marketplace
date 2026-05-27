@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getListing } from '../services/api';
 import toast from 'react-hot-toast';
+import '../styles/components.css';
 
 function ListingPage() {
     const { userId, listingId } = useParams();
@@ -43,6 +44,9 @@ function ListingPage() {
 
     const phoneRaw = user.profile?.phone;
     const hasPhone = !!phoneRaw;
+    const listingTags = Array.isArray(listing.tags)
+        ? listing.tags.filter(Boolean)
+        : [];
 
     return (
         <div className="container" style={{ marginTop: '2rem' }}>
@@ -115,6 +119,16 @@ function ListingPage() {
                         <div className="listing-price" style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '1.5rem' }}>
                             {listing.price.toLocaleString()} {listing.currency === 'RUB' ? '₽' : listing.currency}
                         </div>
+
+                        {listingTags.length > 0 && (
+                            <div className="listing-tags">
+                                {listingTags.map(tag => (
+                                    <span key={tag} className="listing-tag">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
 
                         {hasPhone ? (
                             !showPhone ? (

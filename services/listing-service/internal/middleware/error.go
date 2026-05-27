@@ -47,6 +47,10 @@ func mapDomainError(err error) (statusCode int, code string, message string) {
 		return http.StatusBadRequest, "INVALID_ORDER_STATUS", err.Error()
 	case errors.Is(err, service.ErrForbidden):
 		return http.StatusForbidden, "FORBIDDEN", err.Error()
+	case errors.Is(err, service.ErrTagSuggestionsNotConfigured):
+		return http.StatusServiceUnavailable, "TAG_SUGGESTIONS_NOT_CONFIGURED", err.Error()
+	case errors.Is(err, service.ErrTagSuggestionsUnavailable):
+		return http.StatusBadGateway, "TAG_SUGGESTIONS_UNAVAILABLE", err.Error()
 
 	case errors.Is(err, service.ErrOrderNotCompleted):
 		return http.StatusBadRequest, "ORDER_NOT_COMPLETED", err.Error()

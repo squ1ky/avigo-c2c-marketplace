@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getListing, updateListing } from '../services/api';
 import ImageUploader from '../components/common/ImageUploader';
 import CategorySelect from '../components/common/CategorySelect';
+import TagSuggestions from '../components/common/TagSuggestions';
 import toast from 'react-hot-toast';
 import '../styles/main.css';
 import { useAuth } from "../context/AuthContext.jsx";
@@ -20,7 +21,8 @@ function EditListingPage() {
         price: '',
         currency: 'RUB',
         category_id: '',
-        media_ids: []
+        media_ids: [],
+        tags: []
     });
 
     useEffect(() => {
@@ -37,7 +39,8 @@ function EditListingPage() {
                     price: listing.price,
                     currency: listing.currency,
                     category_id: listing.category_id,
-                    media_ids: listing.media ? listing.media.map(m => m.id) : []
+                    media_ids: listing.media ? listing.media.map(m => m.id) : [],
+                    tags: listing.tags || []
                 });
             } catch (error) {
                 console.error("Failed to fetch listing", error);
@@ -62,6 +65,10 @@ function EditListingPage() {
 
     const setMediaIds = (ids) => {
         setFormData(prev => ({ ...prev, media_ids: ids }));
+    };
+
+    const setTags = (tags) => {
+        setFormData(prev => ({ ...prev, tags }));
     };
 
     const handleSubmit = async (e) => {
@@ -120,6 +127,16 @@ function EditListingPage() {
                         onChange={handleChange}
                         required
                         minLength={5}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label">Теги</label>
+                    <TagSuggestions
+                        title={formData.title}
+                        categoryId={formData.category_id}
+                        tags={formData.tags}
+                        onChange={setTags}
                     />
                 </div>
 

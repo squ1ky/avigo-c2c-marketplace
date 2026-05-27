@@ -19,6 +19,7 @@ import UserSalesPage from "./pages/UserSalesPage.jsx";
 import UserPurchasesPage from "./pages/UserPurchasesPage.jsx";
 import UserListingsPage from "./pages/UserListingsPage.jsx";
 import EditListingPage from "./pages/EditListingPage.jsx";
+import CatalogPage from "./pages/CatalogPage.jsx";
 
 function App() {
     return (
@@ -27,6 +28,7 @@ function App() {
                 <Toaster position="top-right" />
                 <Routes>
                     <Route path="/" element={<Layout><HomePage /></Layout>} />
+                    <Route path="/catalog" element={<Layout><CatalogPage /></Layout>} />
                     <Route path="/auth/login" element={<Layout><LoginPage /></Layout>} />
                     <Route path="/auth/register" element={<Layout><RegisterPage /></Layout>} />
                     <Route path="/auth/confirm-email" element={<Layout><EmailConfirmPage /></Layout>} />

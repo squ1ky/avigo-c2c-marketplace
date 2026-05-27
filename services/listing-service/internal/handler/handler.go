@@ -6,23 +6,26 @@ import (
 )
 
 type Handler struct {
-	listingSvc *service.ListingService
-	orderSvc   *service.OrderService
-	reviewSvc  *service.ReviewService
-	mediaSvc   *service.MediaService
+	listingSvc       *service.ListingService
+	tagSuggestionSvc *service.TagSuggestionService
+	orderSvc         *service.OrderService
+	reviewSvc        *service.ReviewService
+	mediaSvc         *service.MediaService
 }
 
 func NewHandler(
 	listingSve *service.ListingService,
+	tagSuggestionSvc *service.TagSuggestionService,
 	orderSvc *service.OrderService,
 	reviewSvc *service.ReviewService,
 	mediaSvc *service.MediaService,
 ) *Handler {
 	return &Handler{
-		listingSvc: listingSve,
-		orderSvc:   orderSvc,
-		reviewSvc:  reviewSvc,
-		mediaSvc:   mediaSvc,
+		listingSvc:       listingSve,
+		tagSuggestionSvc: tagSuggestionSvc,
+		orderSvc:         orderSvc,
+		reviewSvc:        reviewSvc,
+		mediaSvc:         mediaSvc,
 	}
 }
 

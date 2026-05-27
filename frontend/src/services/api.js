@@ -18,6 +18,8 @@ const errorMessages = {
     'USER_ALREADY_VERIFIED': 'Email уже подтверждён',
     'VALIDATION_FAILED': 'Ошибка валидации данных',
     'INTERNAL_ERROR': 'Внутренняя ошибка сервера',
+    'TAG_SUGGESTIONS_NOT_CONFIGURED': 'Подсказки тегов пока не настроены',
+    'TAG_SUGGESTIONS_UNAVAILABLE': 'Не удалось подобрать теги',
 };
 
 api.interceptors.response.use(
@@ -138,9 +140,19 @@ export const getUserListings = async (userId, params = {}) => {
     return response.data;
 };
 
+export const getCatalogListings = async (params = {}) => {
+    const response = await api.get('/listings', { params });
+    return response.data;
+};
+
 export const getCategories = async () => {
     const response = await api.get('/categories');
     return response.data;
+};
+
+export const suggestListingTags = async (data) => {
+    const response = await api.post('/listings/tags/suggest', data);
+    return response.data.tags || [];
 };
 
 export const updateListing = async (userId, listingId, data) => {

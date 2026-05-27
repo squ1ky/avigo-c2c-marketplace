@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/grpc/client/user"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/handler"
+	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/llm"
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/middleware"
 	mngrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/mongo"
 	pgrepo "github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/repository/postgres"
@@ -87,6 +88,8 @@ func main() {
 	charsRepo := mngrepo.NewCharacteristicsRepository(mongoDB)
 
 	mediaSvc := service.NewMediaService(minioRepo, mediaRepo, cfg.S3)
+	geminiClient := llm.NewGeminiClient(cfg.Gemini)
+	tagSuggestionSvc := service.NewTagSuggestionService(geminiClient, listingRepo)
 	listingSvc := service.NewListingService(
 		listingRepo,
 		mediaRepo,
@@ -99,7 +102,7 @@ func main() {
 	orderSvc := service.NewOrderService(orderRepo, listingRepo, txManager, userClient)
 	reviewSvc := service.NewReviewService(reviewRepo, orderRepo)
 
-	h := handler.NewHandler(listingSvc, orderSvc, reviewSvc, mediaSvc)
+	h := handler.NewHandler(listingSvc, tagSuggestionSvc, orderSvc, reviewSvc, mediaSvc)
 
 	router := gin.New()
 	router.Use(gin.Recovery())

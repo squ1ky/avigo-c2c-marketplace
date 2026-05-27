@@ -46,6 +46,24 @@ func ToDomainCharacteristics(input dto.CreateListingInput, id uuid.UUID, now tim
 	}
 }
 
+func ToDomainCharacteristicsFromUpdate(input dto.UpdateListingInput, now time.Time) *domain.ListingCharacteristics {
+	chars := input.Characteristics
+	if chars == nil {
+		chars = make(map[string]interface{})
+	}
+	tags := input.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
+	return &domain.ListingCharacteristics{
+		ListingID:       input.ID,
+		Characteristics: chars,
+		Tags:            tags,
+		UpdatedAt:       now,
+	}
+}
+
 func ToListingResponse(
 	listing *domain.Listing,
 	chars *domain.ListingCharacteristics,

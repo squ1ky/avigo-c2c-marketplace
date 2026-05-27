@@ -8,6 +8,7 @@ import (
 	"github.com/squ1ky/avigo-c2c-marketplace/services/listing-service/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -27,6 +28,26 @@ func (r *CharacteristicsRepository) Create(ctx context.Context, chars *domain.Li
 	_, err := r.collection.InsertOne(ctx, chars)
 	if err != nil {
 		return fmt.Errorf("failed to create characteristics: %w", err)
+	}
+
+	return nil
+}
+
+func (r *CharacteristicsRepository) Upsert(ctx context.Context, chars *domain.ListingCharacteristics) error {
+	chars.UpdatedAt = time.Now()
+
+	filter := bson.M{"listing_id": chars.ListingID}
+	update := bson.M{
+		"$set": bson.M{
+			"characteristics": chars.Characteristics,
+			"tags":            chars.Tags,
+			"updated_at":      chars.UpdatedAt,
+		},
+	}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
+	if err != nil {
+		return fmt.Errorf("failed to upsert characteristics: %w", err)
 	}
 
 	return nil

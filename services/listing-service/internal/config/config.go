@@ -17,6 +17,7 @@ type Config struct {
 	MongoDB     MongoConfig    `mapstructure:"mongodb"`
 	S3          S3Config       `mapstructure:"s3"`
 	Kafka       KafkaConfig    `mapstructure:"kafka"`
+	Gemini      GeminiConfig   `mapstructure:"gemini"`
 }
 
 type ServerConfig struct {
@@ -85,6 +86,13 @@ type KafkaConfig struct {
 	RetryMax            int           `mapstructure:"retry_max"`
 }
 
+type GeminiConfig struct {
+	APIKey  string        `mapstructure:"api_key"`
+	BaseURL string        `mapstructure:"base_url"`
+	Model   string        `mapstructure:"model"`
+	Timeout time.Duration `mapstructure:"timeout"`
+}
+
 func Load() (*Config, error) {
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
@@ -151,6 +159,12 @@ func Load() (*Config, error) {
 			WriteTimeout:        viper.GetDuration("KAFKA_WRITE_TIMEOUT"),
 			RetryMax:            viper.GetInt("KAFKA_RETRY_MAX"),
 		},
+		GeminiConfig{
+			APIKey:  viper.GetString("GEMINI_API_KEY"),
+			BaseURL: viper.GetString("GEMINI_BASE_URL"),
+			Model:   viper.GetString("GEMINI_MODEL"),
+			Timeout: viper.GetDuration("GEMINI_TIMEOUT"),
+		},
 	}
 
 	if err := validateConfig(cfg); err != nil {
@@ -199,6 +213,10 @@ func setDefaults() {
 	viper.SetDefault("KAFKA_COMPRESSION", "snappy")
 	viper.SetDefault("KAFKA_WRITE_TIMEOUT", 10*time.Second)
 	viper.SetDefault("KAFKA_RETRY_MAX", 3)
+
+	viper.SetDefault("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com")
+	viper.SetDefault("GEMINI_MODEL", "gemini-2.5-flash")
+	viper.SetDefault("GEMINI_TIMEOUT", 10*time.Second)
 }
 
 func validateConfig(cfg *Config) error {

@@ -9,6 +9,9 @@ import (
 )
 
 func (h *Handler) initListingRoutes(api *gin.RouterGroup) {
+	api.GET("/listings", h.getCatalogListings)
+	api.POST("/listings/tags/suggest", h.suggestListingTags)
+
 	listings := api.Group("/account/:user_id/listings")
 	{
 		listings.POST("", h.createListing)
@@ -22,6 +25,51 @@ func (h *Handler) initListingRoutes(api *gin.RouterGroup) {
 	{
 		categories.GET("", h.getCategories)
 	}
+}
+
+func (h *Handler) getCatalogListings(c *gin.Context) {
+	limit := 50
+	offset := 0
+
+	if l := c.Query("limit"); l != "" {
+		if val, err := strconv.Atoi(l); err == nil && val > 0 && val <= 100 {
+			limit = val
+		}
+	}
+
+	if o := c.Query("offset"); o != "" {
+		if val, err := strconv.Atoi(o); err == nil && val > 0 {
+			offset = val
+		}
+	}
+
+	resp, err := h.listingSvc.GetCatalogListings(c.Request.Context(), limit, offset)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) suggestListingTags(c *gin.Context) {
+	if _, ok := getUserIDFromHeader(c); !ok {
+		return
+	}
+
+	var input dto.SuggestTagsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		invalidJSON(c, err)
+		return
+	}
+
+	resp, err := h.tagSuggestionSvc.Suggest(c.Request.Context(), input)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) createListing(c *gin.Context) {

@@ -61,6 +61,15 @@ type ListingWithUserResponse struct {
 	User    UserResponse    `json:"user"`
 }
 
+type SuggestTagsInput struct {
+	Title      string `json:"title" binding:"required,min=3,max=120"`
+	CategoryID string `json:"category_id" binding:"omitempty,uuid"`
+}
+
+type SuggestTagsResponse struct {
+	Tags []string `json:"tags"`
+}
+
 type CategoryResponse struct {
 	ID       string              `json:"id"`
 	Name     string              `json:"name"`

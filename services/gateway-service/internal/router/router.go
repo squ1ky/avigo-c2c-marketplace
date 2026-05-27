@@ -38,6 +38,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		}
 
 		v1.GET("/categories", listingProxy)
+		v1.GET("/listings", listingProxy)
 		v1.GET("/account/:user_id/listings", listingProxy)
 		v1.GET("/account/:user_id/listings/:listing_id", listingProxy)
 
@@ -68,6 +69,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 				accountProtected.GET("/orders/purchases", orderProxy)
 				accountProtected.GET("/orders/sales", orderProxy)
 			}
+
+			protected.POST("/listings/tags/suggest", listingProxy)
 
 			mediaProtected := protected.Group("/media")
 			{

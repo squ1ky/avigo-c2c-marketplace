@@ -196,7 +196,7 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID uuid.UUID, isSe
 
 	usersMap, err := s.userClient.GetUsersByID(ctx, userIDs)
 	if err != nil {
-		slog.Warn("warning: user service unavailable: %v\n", err)
+		slog.Warn("user service unavailable", "error", err)
 		usersMap = make(map[string]*userpb.User)
 	}
 

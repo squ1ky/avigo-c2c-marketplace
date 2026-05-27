@@ -160,6 +160,38 @@ func (r *ListingRepository) GetByUserID(ctx context.Context, userID uuid.UUID, l
 	return results, nil
 }
 
+func (r *ListingRepository) GetAllActive(ctx context.Context, limit, offset int) ([]domain.ListingWithMedia, error) {
+	query := `
+		SELECT l.id, l.user_id, l.category_id, l.title, l.description,
+		       l.price, l.currency, l.status, l.views_count, l.is_sold, l.created_at, l.updated_at,
+			   COALESCE(m.file_url, '') as main_image_url
+		FROM listings l
+		LEFT JOIN listing_media m on l.id = m.listing_id AND m."order" = 0
+		WHERE l.status = 'active' AND l.is_sold = false
+		ORDER BY l.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	var rows []struct {
+		domain.Listing
+		MainImageURL string `db:"main_image_url"`
+	}
+
+	if err := r.db.SelectContext(ctx, &rows, query, limit, offset); err != nil {
+		return nil, fmt.Errorf("failed to get active listings: %w", err)
+	}
+
+	results := make([]domain.ListingWithMedia, len(rows))
+	for i, row := range rows {
+		results[i] = domain.ListingWithMedia{
+			Listing:   row.Listing,
+			MainImage: row.MainImageURL,
+		}
+	}
+
+	return results, nil
+}
+
 func (r *ListingRepository) IncrementViews(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE listings SET views_count = views_count + 1 WHERE id = $1`
 
@@ -201,6 +233,24 @@ func (r *ListingRepository) GetAllCategories(ctx context.Context) ([]*domain.Cat
 	}
 
 	return categories, nil
+}
+
+func (r *ListingRepository) GetCategoryByID(ctx context.Context, id uuid.UUID) (*domain.Category, error) {
+	query := `
+		SELECT id, name, slug, parent_id, level, "order", created_at
+		FROM categories
+		WHERE id = $1
+	`
+
+	var category domain.Category
+	if err := r.db.GetContext(ctx, &category, query, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("category not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get category: %w", err)
+	}
+
+	return &category, nil
 }
 
 func (r *ListingRepository) MarkAsSold(ctx context.Context, id uuid.UUID) error {

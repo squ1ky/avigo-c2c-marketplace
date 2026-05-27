@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createListing } from '../services/api';
 import ImageUploader from '../components/common/ImageUploader';
 import CategorySelect from '../components/common/CategorySelect';
+import TagSuggestions from '../components/common/TagSuggestions';
 import toast from 'react-hot-toast';
 import '../styles/main.css';
 import {useAuth} from "../context/AuthContext.jsx";
@@ -18,7 +19,8 @@ function CreateListingPage() {
         price: '',
         currency: 'RUB',
         category_id: '',
-        media_ids: []
+        media_ids: [],
+        tags: []
     });
 
     const handleChange = (e) => {
@@ -32,6 +34,10 @@ function CreateListingPage() {
 
     const setMediaIds = (ids) => {
         setFormData(prev => ({ ...prev, media_ids: ids }));
+    };
+
+    const setTags = (tags) => {
+        setFormData(prev => ({ ...prev, tags }));
     };
 
     const handleSubmit = async (e) => {
@@ -86,6 +92,16 @@ function CreateListingPage() {
                         onChange={handleChange}
                         required
                         minLength={5}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label">Теги</label>
+                    <TagSuggestions
+                        title={formData.title}
+                        categoryId={formData.category_id}
+                        tags={formData.tags}
+                        onChange={setTags}
                     />
                 </div>
 
